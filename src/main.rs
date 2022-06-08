@@ -20,13 +20,10 @@ use async_tungstenite::{accept_async, WebSocketStream};
 use futures_util::*;
 use std::sync::Arc;
 
-use rand::rngs::StdRng;
-use rand::{Rng, SeedableRng};
 use rand_core::OsRng;
 use rmp_serde::{Deserializer, Serializer};
 use serde::{Deserialize, Serialize};
 use x25519_dalek::{EphemeralSecret, PublicKey};
-// use flate2::read::;
 
 // use log::info;
 
@@ -36,45 +33,13 @@ use crate::methods::{
     Event, HelloEvent, Method, NotFoundResponse, Response, RpcApiEvent, RpcApiMethod,
     RpcApiResponse,
 };
+use crate::services::encryption::{generate,random_number};
 // use jsonwebtoken::{decode, encode, Header, Validation};
 
 struct RpcClient {
     id: String,
     socket: Arc<Mutex<WebSocketStream<TcpStream>>>,
 }
-
-pub fn random_number(size: usize) -> Vec<u8> {
-    let mut rng = StdRng::from_entropy();
-    let mut result: Vec<u8> = vec![0; size];
-    rng.fill(&mut result[..]);
-    result
-}
-
-pub fn generate(random: fn(usize) -> Vec<u8>, alphabet: &[char], size: usize) -> String {
-    assert!(
-        alphabet.len() <= u8::max_value() as usize,
-        "The alphabet cannot be longer than a `u8` (to comply with the `random` function)"
-    );
-    let mask = alphabet.len().next_power_of_two() - 1;
-    let step: usize = 8 * size / 5;
-    let mut id = String::with_capacity(size);
-    loop {
-        let bytes = random(step);
-        for &byte in &bytes {
-            let byte = byte as usize & mask;
-            if alphabet.len() > byte {
-                id.push(alphabet[byte]);
-                if id.len() == size {
-                    return id;
-                }
-            }
-        }
-    }
-}
-
-// pub fn encode(object: RpcApiMethod, compress: bool, encrypt: bool) -> Vec<u8> {
-
-// }
 
 #[async_std::main]
 async fn main() {
