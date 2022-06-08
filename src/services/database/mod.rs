@@ -1,4 +1,4 @@
-use crate::services::environment::{MONGODB_URI, MONGODB_DATABASE};
+use crate::services::environment::{MONGODB_DATABASE, MONGODB_URI};
 
 use mongodb::{Client, Database};
 use once_cell::sync::OnceCell;

@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
+use std::sync::Arc;
 // use std::sync::atomic::Ordering::SeqCst;
 use std::sync::atomic::Ordering::Relaxed;
 
@@ -26,7 +26,9 @@ use mediasoup::transport::ConsumeError;
 use mediasoup::transport::ProduceError;
 use mediasoup::transport::Transport;
 use mediasoup::transport::TransportId;
-use mediasoup::webrtc_transport::{TransportListenIps, WebRtcTransport, WebRtcTransportOptions, WebRtcTransportRemoteParameters};
+use mediasoup::webrtc_transport::{
+    TransportListenIps, WebRtcTransport, WebRtcTransportOptions, WebRtcTransportRemoteParameters,
+};
 use mediasoup::worker::RequestError;
 use mediasoup::worker::{Worker, WorkerSettings};
 use mediasoup::worker_manager::WorkerManager;
@@ -41,7 +43,7 @@ lazy_static! {
 pub struct CallMember {
     id: String,
     user_id: String,
-    socket: Arc<Mutex<WebSocketStream<TcpStream>>>
+    socket: Arc<Mutex<WebSocketStream<TcpStream>>>,
 }
 
 pub struct Call {
@@ -50,14 +52,15 @@ pub struct Call {
     transports: DashMap<String, WebRtcTransport>,
     producers: DashMap<String, Producer>,
     consumers: DashMap<String, Consumer>,
-    members: Vec<CallMember>
+    members: Vec<CallMember>,
 }
 
 impl Call {
     pub async fn new(id: String) -> Self {
         let worker_arc = get_worker().await;
         let worker = worker_arc.lock().await;
-        let router = worker.create_router(RouterOptions::default())
+        let router = worker
+            .create_router(RouterOptions::default())
             .await
             .expect("Failed to create router");
         Call {
@@ -66,18 +69,32 @@ impl Call {
             transports: DashMap::new(),
             producers: DashMap::new(),
             consumers: DashMap::new(),
-            members: Vec::new()
+            members: Vec::new(),
         }
     }
     pub fn get_rtp_capabilities(self: &Self) -> RtpCapabilitiesFinalized {
         self.router.rtp_capabilities().clone()
     }
-    pub async fn create_transport(self: &Self) -> Result<(TransportId, IceParameters, Vec<IceCandidate>, DtlsParameters, Option<SctpParameters>), RequestError> {
+    pub async fn create_transport(
+        self: &Self,
+    ) -> Result<
+        (
+            TransportId,
+            IceParameters,
+            Vec<IceCandidate>,
+            DtlsParameters,
+            Option<SctpParameters>,
+        ),
+        RequestError,
+    > {
         let listen_ips = TransportListenIps::new(TransportListenIp {
             ip: V4(Ipv4Addr::new(0, 0, 0, 0)),
-            announced_ip: Some(V4(Ipv4Addr::new(0, 0, 0, 0))) // TODO: use env instead of actual public ip
+            announced_ip: Some(V4(Ipv4Addr::new(0, 0, 0, 0))), // TODO: use env instead of actual public ip
         });
-        let transport = self.router.create_webrtc_transport(WebRtcTransportOptions::new(listen_ips)).await;
+        let transport = self
+            .router
+            .create_webrtc_transport(WebRtcTransportOptions::new(listen_ips))
+            .await;
         match transport {
             Ok(t) => {
                 let id = t.id().clone();
@@ -86,25 +103,32 @@ impl Call {
                 let dtls_parameters = t.dtls_parameters().clone();
                 let sctp_parameters = t.sctp_parameters().clone();
                 self.transports.insert(t.id().to_string(), t);
-                Ok((id, ice_parameters, ice_candidates, dtls_parameters, sctp_parameters))
-            },
-            Err(e) => {
-                Err(e)
+                Ok((
+                    id,
+                    ice_parameters,
+                    ice_candidates,
+                    dtls_parameters,
+                    sctp_parameters,
+                ))
             }
+            Err(e) => Err(e),
         }
     }
     pub async fn connect_transport(self: &Self, id: String, dtls_parameters: DtlsParameters) {
         let transport = self.transports.get(&id).unwrap();
-        transport.connect(WebRtcTransportRemoteParameters {
-            dtls_parameters
-        }).await.unwrap();
+        transport
+            .connect(WebRtcTransportRemoteParameters { dtls_parameters })
+            .await
+            .unwrap();
     }
-    pub async fn produce(self: &Self, id: String, kind: MediaKind, rtp_parameters: RtpParameters) -> Result<(ProducerId, MediaKind, RtpParameters, ProducerType), ProduceError> {
+    pub async fn produce(
+        self: &Self,
+        id: String,
+        kind: MediaKind,
+        rtp_parameters: RtpParameters,
+    ) -> Result<(ProducerId, MediaKind, RtpParameters, ProducerType), ProduceError> {
         let transport = self.transports.get(&id).unwrap();
-        let producer_options = ProducerOptions::new(
-            kind,
-            rtp_parameters
-        );
+        let producer_options = ProducerOptions::new(kind, rtp_parameters);
         let producer = transport.produce(producer_options).await;
         match producer {
             Ok(p) => {
@@ -112,15 +136,28 @@ impl Call {
                 let kind = p.kind().clone();
                 let rtp_parameters = p.rtp_parameters().clone();
                 let producer_type = p.r#type().clone();
-                self.producers.insert(p.id().to_string(), p);  
+                self.producers.insert(p.id().to_string(), p);
                 Ok((id, kind, rtp_parameters, producer_type))
-            },
-            Err(e) => {
-                Err(e)
             }
+            Err(e) => Err(e),
         }
     }
-    pub async fn consume(self: &Self, id: String, producer_id: ProducerId, rtp_capabilities: RtpCapabilities) -> Result<(ConsumerId, MediaKind, RtpParameters, ConsumerType, ProducerId, bool), ConsumeError> {
+    pub async fn consume(
+        self: &Self,
+        id: String,
+        producer_id: ProducerId,
+        rtp_capabilities: RtpCapabilities,
+    ) -> Result<
+        (
+            ConsumerId,
+            MediaKind,
+            RtpParameters,
+            ConsumerType,
+            ProducerId,
+            bool,
+        ),
+        ConsumeError,
+    > {
         let transport = self.transports.get(&id).unwrap();
         let mut consumer_options = ConsumerOptions::new(producer_id, rtp_capabilities);
         consumer_options.paused = true;
@@ -134,11 +171,16 @@ impl Call {
                 let producer_id = c.producer_id().clone();
                 let producer_paused = c.producer_paused().clone();
                 self.consumers.insert(c.id().to_string(), c);
-                Ok((id, kind, rtp_parameters, consumer_type, producer_id, producer_paused))
-            },
-            Err(e) => {
-                Err(e)
+                Ok((
+                    id,
+                    kind,
+                    rtp_parameters,
+                    consumer_type,
+                    producer_id,
+                    producer_paused,
+                ))
             }
+            Err(e) => Err(e),
         }
     }
     pub async fn resume(self: &Self, consumer_id: String) {
@@ -155,7 +197,8 @@ pub async fn create_workers() -> () {
     let worker_manager = WorkerManager::new();
     let mut workers = WORKERS.lock().await;
     for _ in 0..num_cpus::get() {
-        let worker = worker_manager.create_worker(WorkerSettings::default())
+        let worker = worker_manager
+            .create_worker(WorkerSettings::default())
             .await
             .expect("Failed to create worker");
         // worker.create_router(RouterOptions::default())
@@ -193,12 +236,12 @@ pub async fn get_worker() -> Arc<Mutex<Worker>> {
 pub async fn get_call(channel_id: String) -> Arc<Mutex<Call>> {
     let call = CALLS.get(&channel_id);
     match call {
-        Some(c) => {
-            c.value().clone()
-        },
+        Some(c) => c.value().clone(),
         None => {
             let new_call = Call::new(channel_id.clone()).await;
-            CALLS.insert(channel_id.clone(), Arc::new(Mutex::new(new_call))).unwrap()
+            CALLS
+                .insert(channel_id.clone(), Arc::new(Mutex::new(new_call)))
+                .unwrap()
         }
     }
 }
