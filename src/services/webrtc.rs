@@ -71,11 +71,11 @@ impl Call {
             members: Vec::new(),
         }
     }
-    pub fn get_rtp_capabilities(self: &Self) -> RtpCapabilitiesFinalized {
+    pub fn get_rtp_capabilities(&self) -> RtpCapabilitiesFinalized {
         self.router.rtp_capabilities().clone()
     }
     pub async fn create_transport(
-        self: &Self,
+        &self,
     ) -> Result<
         (
             TransportId,
@@ -113,7 +113,7 @@ impl Call {
             Err(e) => Err(e),
         }
     }
-    pub async fn connect_transport(self: &Self, id: String, dtls_parameters: DtlsParameters) {
+    pub async fn connect_transport(&self, id: String, dtls_parameters: DtlsParameters) {
         let transport = self.transports.get(&id).unwrap();
         transport
             .connect(WebRtcTransportRemoteParameters { dtls_parameters })
@@ -121,7 +121,7 @@ impl Call {
             .unwrap();
     }
     pub async fn produce(
-        self: &Self,
+        &self,
         id: String,
         kind: MediaKind,
         rtp_parameters: RtpParameters,
@@ -142,7 +142,7 @@ impl Call {
         }
     }
     pub async fn consume(
-        self: &Self,
+        &self,
         id: String,
         producer_id: ProducerId,
         rtp_capabilities: RtpCapabilities,
@@ -182,7 +182,7 @@ impl Call {
             Err(e) => Err(e),
         }
     }
-    pub async fn resume(self: &Self, consumer_id: String) {
+    pub async fn resume(&self, consumer_id: String) {
         let consumer = self.consumers.get(&consumer_id).unwrap();
         consumer.resume().await.unwrap();
     }
