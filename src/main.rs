@@ -134,21 +134,11 @@ async fn main() {
                                 Method::Capabilities(m) => {
                                     methods::webrtc::capabilities(socket_arc.clone(), m).await
                                 }
-                                Method::Transport(m) => {
-                                    methods::webrtc::transport(m).await
-                                }
-                                Method::Dtls(m) => {
-                                    methods::webrtc::dtls(m).await
-                                }
-                                Method::Produce(m) => {
-                                    methods::webrtc::produce(m).await
-                                }
-                                Method::Consume(m) => {
-                                    methods::webrtc::consume(m).await
-                                }
-                                Method::Resume(m) => {
-                                    methods::webrtc::resume(m).await
-                                }
+                                Method::Transport(m) => methods::webrtc::transport(m).await,
+                                Method::Dtls(m) => methods::webrtc::dtls(m).await,
+                                Method::Produce(m) => methods::webrtc::produce(m).await,
+                                Method::Consume(m) => methods::webrtc::consume(m).await,
+                                Method::Resume(m) => methods::webrtc::resume(m).await,
                                 _ => {
                                     fn not_found(
                                         _: Arc<Mutex<WebSocketStream<TcpStream>>>,

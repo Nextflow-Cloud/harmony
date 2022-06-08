@@ -1,7 +1,6 @@
 use mediasoup::{
-    consumer::ConsumerType,
-    data_structures::RtpPacketTraceInfo,
-    prelude::{ConsumerId, DtlsParameters, IceCandidate, IceParameters},
+    consumer::{ConsumerId, ConsumerType},
+    prelude::{DtlsParameters, IceCandidate, IceParameters},
     producer::{ProducerId, ProducerType},
     rtp_parameters::{MediaKind, RtpCapabilities, RtpCapabilitiesFinalized, RtpParameters},
     sctp_parameters::SctpParameters,

@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
 use async_std::net::TcpStream;
-use async_std::net::{IpAddr::V4, Ipv4Addr};
 use async_std::sync::Mutex;
 use async_tungstenite::WebSocketStream;
-use mediasoup::prelude::{TransportListenIp, TransportListenIps};
 
 use crate::methods::CapabilitiesMethod;
 use crate::services::webrtc;
@@ -28,10 +26,6 @@ pub async fn capabilities(
 
 pub async fn transport(method: TransportMethod) -> Response {
     let call = webrtc::get_call(method.channel_id).await;
-    let listen_ips = TransportListenIps::new(TransportListenIp {
-        ip: V4(Ipv4Addr::new(0, 0, 0, 0)),
-        announced_ip: Some(V4(Ipv4Addr::new(24, 141, 115, 80))),
-    });
     let transport = call.create_transport().await;
     match transport {
         Ok(t) => Response::Transport(TransportResponse {
