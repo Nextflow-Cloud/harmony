@@ -3,34 +3,24 @@ use std::sync::Arc;
 // use std::sync::atomic::Ordering::SeqCst;
 use std::sync::atomic::Ordering::Relaxed;
 
-use async_std::net::IpAddr::V4;
-use async_std::net::Ipv4Addr;
-use async_std::net::TcpStream;
+use async_std::net::{IpAddr::V4, Ipv4Addr, TcpStream};
 use async_std::sync::Mutex;
 use async_tungstenite::WebSocketStream;
 use dashmap::DashMap;
 use lazy_static::lazy_static;
 use mediasoup::consumer::{Consumer, ConsumerId, ConsumerOptions, ConsumerType};
-use mediasoup::prelude::DtlsParameters;
-use mediasoup::prelude::IceCandidate;
-use mediasoup::prelude::IceParameters;
-use mediasoup::prelude::TransportListenIp;
-use mediasoup::producer::ProducerType;
-use mediasoup::producer::{Producer, ProducerId, ProducerOptions};
+use mediasoup::prelude::{DtlsParameters, IceCandidate, IceParameters, TransportListenIp};
+use mediasoup::producer::{Producer, ProducerId, ProducerOptions, ProducerType};
 use mediasoup::router::{Router, RouterOptions};
-use mediasoup::rtp_parameters::RtpCapabilities;
-use mediasoup::rtp_parameters::RtpCapabilitiesFinalized;
-use mediasoup::rtp_parameters::{MediaKind, RtpParameters};
+use mediasoup::rtp_parameters::{
+    MediaKind, RtpCapabilities, RtpCapabilitiesFinalized, RtpParameters,
+};
 use mediasoup::sctp_parameters::SctpParameters;
-use mediasoup::transport::ConsumeError;
-use mediasoup::transport::ProduceError;
-use mediasoup::transport::Transport;
-use mediasoup::transport::TransportId;
+use mediasoup::transport::{ConsumeError, ProduceError, Transport, TransportId};
 use mediasoup::webrtc_transport::{
     TransportListenIps, WebRtcTransport, WebRtcTransportOptions, WebRtcTransportRemoteParameters,
 };
-use mediasoup::worker::RequestError;
-use mediasoup::worker::{Worker, WorkerSettings};
+use mediasoup::worker::{RequestError, Worker, WorkerSettings};
 use mediasoup::worker_manager::WorkerManager;
 
 lazy_static! {
