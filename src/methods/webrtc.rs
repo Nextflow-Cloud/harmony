@@ -24,8 +24,7 @@ pub async fn capabilities(
     // let router = webrtc::create_router(method.id).await;
     // let call = webrtc::Call::new(method.id).await;
     // let capabilities = router.lock().await.rtp_capabilities();
-    let call_arc = webrtc::get_call(method.channel_id).await;
-    let call = call_arc.lock().await;
+    let call = webrtc::get_call(method.channel_id).await;
     Response::Capabilities(CapabilitiesResponse {
         rtp_capabilities: call.get_rtp_capabilities(),
     })
@@ -43,7 +42,7 @@ pub async fn transport(method: TransportMethod) -> Response {
     //     .create_webrtc_transport(WebRtcTransportOptions::new(listen_ips))
     //     .await
     //     .expect("Uh oh");
-    let transport = call.lock().await.create_transport().await;
+    let transport = call.create_transport().await;
     match transport {
         Ok(t) => Response::Transport(TransportResponse {
             id: t.0,
@@ -60,9 +59,7 @@ pub async fn transport(method: TransportMethod) -> Response {
 
 pub async fn dtls(method: DtlsMethod) -> Response {
     let call = webrtc::get_call(method.channel_id).await; // very messy code, didn't test
-    call.lock()
-        .await
-        .connect_transport(method.transport_id, method.dtls_parameters)
+    call.connect_transport(method.transport_id, method.dtls_parameters)
         .await;
     Response::Dtls(DtlsResponse {})
 }
@@ -70,8 +67,6 @@ pub async fn dtls(method: DtlsMethod) -> Response {
 pub async fn produce(method: ProduceMethod) -> Response {
     let call = webrtc::get_call(method.channel_id).await;
     let produce = call
-        .lock()
-        .await
         .produce(method.transport_id, method.kind, method.rtp_parameters)
         .await;
     match produce {
@@ -92,8 +87,6 @@ pub async fn produce(method: ProduceMethod) -> Response {
 pub async fn consume(method: ConsumeMethod) -> Response {
     let call = webrtc::get_call(method.channel_id).await;
     let consume = call
-        .lock()
-        .await
         .consume(
             method.transport_id,
             method.producer_id,
@@ -119,6 +112,6 @@ pub async fn consume(method: ConsumeMethod) -> Response {
 
 pub async fn resume(method: ResumeMethod) -> Response {
     let call = webrtc::get_call(method.channel_id).await;
-    call.lock().await.resume(method.consumer_id).await;
+    call.resume(method.consumer_id).await;
     Response::Resume(ResumeResponse {})
 }

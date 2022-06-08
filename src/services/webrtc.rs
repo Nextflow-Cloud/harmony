@@ -34,10 +34,10 @@ use mediasoup::worker::{Worker, WorkerSettings};
 use mediasoup::worker_manager::WorkerManager;
 
 lazy_static! {
-    static ref WORKERS: Arc<Mutex<Vec<Arc<Mutex<Worker>>>>> = Arc::new(Mutex::new(Vec::new()));
+    static ref WORKERS: Arc<Mutex<Vec<Arc<Worker>>>> = Arc::new(Mutex::new(Vec::new()));
     // static ref ROUTERS: DashMap<String, Arc<Mutex<Router>>> = DashMap::new();
     static ref WORKER_INDEX: AtomicUsize = AtomicUsize::new(0);
-    static ref CALLS: DashMap<String, Arc<Mutex<Call>>> = DashMap::new();
+    static ref CALLS: DashMap<String, Arc<Call>> = DashMap::new();
 }
 
 pub struct CallMember {
@@ -57,8 +57,7 @@ pub struct Call {
 
 impl Call {
     pub async fn new(id: String) -> Self {
-        let worker_arc = get_worker().await;
-        let worker = worker_arc.lock().await;
+        let worker = get_worker().await;
         let router = worker
             .create_router(RouterOptions::default())
             .await
@@ -204,11 +203,11 @@ pub async fn create_workers() -> () {
         // worker.create_router(RouterOptions::default())
         //     .await
         //     .expect("Failed to create router");
-        workers.push(Arc::new(Mutex::new(worker)));
+        workers.push(Arc::new(worker));
     }
 }
 
-pub async fn get_worker() -> Arc<Mutex<Worker>> {
+pub async fn get_worker() -> Arc<Worker> {
     let index = WORKER_INDEX.load(Relaxed);
     let workers = WORKERS.lock().await;
     let worker = workers[index].clone();
@@ -233,14 +232,14 @@ pub async fn get_worker() -> Arc<Mutex<Worker>> {
 //     }
 // }
 
-pub async fn get_call(channel_id: String) -> Arc<Mutex<Call>> {
+pub async fn get_call(channel_id: String) -> Arc<Call> {
     let call = CALLS.get(&channel_id);
     match call {
         Some(c) => c.value().clone(),
         None => {
             let new_call = Call::new(channel_id.clone()).await;
             CALLS
-                .insert(channel_id.clone(), Arc::new(Mutex::new(new_call)))
+                .insert(channel_id.clone(), Arc::new(new_call))
                 .unwrap()
         }
     }
