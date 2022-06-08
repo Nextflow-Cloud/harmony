@@ -114,8 +114,6 @@ async fn main() {
                 data: Some(Event::Hello(HelloEvent {
                     public_key: public_key.to_bytes().to_vec(),
                 })),
-                // id: None,
-                // error: None,
             };
             val.serialize(&mut Serializer::new(&mut buf)).unwrap();
             socket.send(Message::Binary(buf)).await.unwrap();
