@@ -20,10 +20,6 @@ pub async fn capabilities(
     socket: Arc<Mutex<WebSocketStream<TcpStream>>>,
     method: CapabilitiesMethod,
 ) -> Response {
-    // let channel_id = "".to_string();
-    // let router = webrtc::create_router(method.id).await;
-    // let call = webrtc::Call::new(method.id).await;
-    // let capabilities = router.lock().await.rtp_capabilities();
     let call = webrtc::get_call(method.channel_id).await;
     Response::Capabilities(CapabilitiesResponse {
         rtp_capabilities: call.get_rtp_capabilities(),
@@ -31,17 +27,11 @@ pub async fn capabilities(
 }
 
 pub async fn transport(method: TransportMethod) -> Response {
-    // let router = webrtc::create_router(method.id).await;
     let call = webrtc::get_call(method.channel_id).await;
     let listen_ips = TransportListenIps::new(TransportListenIp {
         ip: V4(Ipv4Addr::new(0, 0, 0, 0)),
         announced_ip: Some(V4(Ipv4Addr::new(24, 141, 115, 80))),
     });
-    // let transport = router.lock()
-    //     .await
-    //     .create_webrtc_transport(WebRtcTransportOptions::new(listen_ips))
-    //     .await
-    //     .expect("Uh oh");
     let transport = call.create_transport().await;
     match transport {
         Ok(t) => Response::Transport(TransportResponse {
@@ -53,12 +43,12 @@ pub async fn transport(method: TransportMethod) -> Response {
         }),
         Err(e) => Response::NotFound(NotFoundResponse {
             error: "Failed to create transport.".to_string(),
-        }),
+        }), // Uh oh
     }
 }
 
 pub async fn dtls(method: DtlsMethod) -> Response {
-    let call = webrtc::get_call(method.channel_id).await; // very messy code, didn't test
+    let call = webrtc::get_call(method.channel_id).await;
     call.connect_transport(method.transport_id, method.dtls_parameters)
         .await;
     Response::Dtls(DtlsResponse {})

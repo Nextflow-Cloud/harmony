@@ -1,7 +1,6 @@
 use std::sync::atomic::AtomicUsize;
-use std::sync::Arc;
-// use std::sync::atomic::Ordering::SeqCst;
 use std::sync::atomic::Ordering::Relaxed;
+use std::sync::Arc;
 
 use async_std::net::{IpAddr::V4, Ipv4Addr, TcpStream};
 use async_std::sync::Mutex;
@@ -25,7 +24,6 @@ use mediasoup::worker_manager::WorkerManager;
 
 lazy_static! {
     static ref WORKERS: Arc<Mutex<Vec<Arc<Worker>>>> = Arc::new(Mutex::new(Vec::new()));
-    // static ref ROUTERS: DashMap<String, Arc<Mutex<Router>>> = DashMap::new();
     static ref WORKER_INDEX: AtomicUsize = AtomicUsize::new(0);
     static ref CALLS: DashMap<String, Arc<Call>> = DashMap::new();
 }
@@ -178,10 +176,6 @@ impl Call {
     }
 }
 
-// pub async fn get_routers() -> DashMap<String, Arc<Mutex<Router>>> {
-//     ROUTERS.clone()
-// }
-
 pub async fn create_workers() -> () {
     let worker_manager = WorkerManager::new();
     let mut workers = WORKERS.lock().await;
@@ -190,9 +184,6 @@ pub async fn create_workers() -> () {
             .create_worker(WorkerSettings::default())
             .await
             .expect("Failed to create worker");
-        // worker.create_router(RouterOptions::default())
-        //     .await
-        //     .expect("Failed to create router");
         workers.push(Arc::new(worker));
     }
 }
@@ -204,23 +195,6 @@ pub async fn get_worker() -> Arc<Worker> {
     WORKER_INDEX.store((index + 1) % workers.len(), Relaxed);
     worker
 }
-
-// pub async fn create_router(channel_id: String) -> Arc<Mutex<Router>> {
-//     let routers = get_routers().await;
-//     let router = routers.get(&channel_id);
-//     if router.is_none() {
-//         let worker_arc = get_worker().await;
-//         let worker = worker_arc.lock().await;
-//         let new_router = worker.create_router(RouterOptions::default())
-//             .await
-//             .expect("Failed to create router");
-//         let router_arc = Arc::new(Mutex::new(new_router));
-//         routers.insert(channel_id, router_arc.clone());
-//         router_arc
-//     } else {
-//         router.unwrap().clone()
-//     }
-// }
 
 pub async fn get_call(channel_id: String) -> Arc<Call> {
     let call = CALLS.get(&channel_id);
