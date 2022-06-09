@@ -27,4 +27,6 @@ async fn main() {
     println!("Server is running on port 9000");
 
     // leaving space for background tasks
+
+    loop {}
 }
