@@ -6,7 +6,7 @@ use async_tungstenite::WebSocketStream;
 
 use crate::methods::CapabilitiesMethod;
 use crate::services::webrtc;
-use crate::Response;
+use crate::methods::Response;
 
 use super::{
     CapabilitiesResponse, ConsumeMethod, ConsumeResponse, DtlsMethod, DtlsResponse,
