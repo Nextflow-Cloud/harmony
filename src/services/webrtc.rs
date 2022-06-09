@@ -1,5 +1,4 @@
-use std::sync::atomic::AtomicUsize;
-use std::sync::atomic::Ordering::Relaxed;
+use std::sync::atomic::{AtomicUsize, Ordering::Relaxed};
 use std::sync::Arc;
 
 use async_std::net::{IpAddr::V4, Ipv4Addr, TcpStream};
@@ -84,11 +83,11 @@ impl Call {
             .await;
         match transport {
             Ok(t) => {
-                let id = t.id().clone();
+                let id = t.id();
                 let ice_parameters = t.ice_parameters().clone();
                 let ice_candidates = t.ice_candidates().clone();
-                let dtls_parameters = t.dtls_parameters().clone();
-                let sctp_parameters = t.sctp_parameters().clone();
+                let dtls_parameters = t.dtls_parameters();
+                let sctp_parameters = t.sctp_parameters();
                 self.transports.insert(t.id().to_string(), t);
                 Ok((
                     id,
@@ -119,10 +118,10 @@ impl Call {
         let producer = transport.produce(producer_options).await;
         match producer {
             Ok(p) => {
-                let id = p.id().clone();
-                let kind = p.kind().clone();
+                let id = p.id();
+                let kind = p.kind();
                 let rtp_parameters = p.rtp_parameters().clone();
-                let producer_type = p.r#type().clone();
+                let producer_type = p.r#type();
                 self.producers.insert(p.id().to_string(), p);
                 Ok((id, kind, rtp_parameters, producer_type))
             }
@@ -151,12 +150,12 @@ impl Call {
         let consumer = transport.consume(consumer_options).await;
         match consumer {
             Ok(c) => {
-                let id = c.id().clone();
-                let kind = c.kind().clone();
+                let id = c.id();
+                let kind = c.kind();
                 let rtp_parameters = c.rtp_parameters().clone();
-                let consumer_type = c.r#type().clone();
-                let producer_id = c.producer_id().clone();
-                let producer_paused = c.producer_paused().clone();
+                let consumer_type = c.r#type();
+                let producer_id = c.producer_id();
+                let producer_paused = c.producer_paused();
                 self.consumers.insert(c.id().to_string(), c);
                 Ok((
                     id,
@@ -176,7 +175,7 @@ impl Call {
     }
 }
 
-pub async fn create_workers() -> () {
+pub async fn create_workers() {
     let worker_manager = WorkerManager::new();
     let mut workers = WORKERS.lock().await;
     for _ in 0..num_cpus::get() {

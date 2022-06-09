@@ -1,8 +1,12 @@
 #![feature(arbitrary_enum_discriminant)]
+#![feature(async_closure)]
 
 pub mod globals;
 pub mod methods;
 pub mod services;
+
+use std::thread::sleep;
+use std::time::Duration;
 
 use services::database;
 use services::socket;
@@ -28,5 +32,7 @@ async fn main() {
 
     // leaving space for background tasks
 
-    loop {}
+    loop {
+        sleep(Duration::from_secs(1))
+    }
 }
