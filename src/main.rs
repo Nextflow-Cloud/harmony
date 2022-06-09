@@ -32,7 +32,7 @@ use crate::methods::{
     Event, HelloEvent, Method, NotFoundResponse, Response, RpcApiEvent, RpcApiMethod,
     RpcApiResponse,
 };
-use crate::services::encryption::{generate,random_number};
+use crate::services::encryption::{generate, random_number};
 
 struct RpcClient {
     id: String,

@@ -2,8 +2,8 @@ use flate2::Compression;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 
-use aes_gcm::{Aes256Gcm, Nonce};
 use aes_gcm::aead::Aead;
+use aes_gcm::{Aes256Gcm, Nonce};
 use flate2::read::ZlibDecoder;
 use flate2::write::ZlibEncoder;
 
