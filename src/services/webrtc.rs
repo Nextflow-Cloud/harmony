@@ -75,9 +75,8 @@ impl Call {
         RequestError,
     > {
         if !(&self.members)
-            .into_iter()
-            .find(|&item| item.client.get_user_id() == user.get_user_id())
-            .is_some()
+            .iter()
+            .any(|item| item.client.get_user_id() == user.get_user_id())
         {
             self.members.push(CallMember {
                 client: user.clone(),
@@ -100,7 +99,7 @@ impl Call {
                 let dtls_parameters = t.dtls_parameters();
                 let sctp_parameters = t.sctp_parameters();
                 let member = (&self.members)
-                    .into_iter()
+                    .iter()
                     .find(|&item| item.client.get_user_id() == user.get_user_id())
                     .unwrap();
                 member.transports.lock().await.push(t.id().to_string());
