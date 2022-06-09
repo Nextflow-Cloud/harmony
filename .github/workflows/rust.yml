@@ -26,11 +26,11 @@ jobs:
       run: rustup component add rustfmt --toolchain nightly-x86_64-unknown-linux-gnu
     - name: nightly-clippy
       run: rustup component add clippy --toolchain nightly-x86_64-unknown-linux-gnu
+    - name: build
+      if: ${{ github.event.inputs.verbose != 'true' }}
+      run: cargo build
     - name: build-verbose
       if: ${{ github.event.inputs.verbose == 'true' }}
       run: cargo build --verbose
-    - name: build
-      if: ${{ github.event.inputs.verbose == 'false' }}
-      run: cargo build
     - name: lint
       run: cargo clippy --all-targets --all-features -- -D warnings
