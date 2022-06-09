@@ -5,11 +5,10 @@ pub mod methods;
 pub mod services;
 
 use services::database;
-use services::environment::{JWT_SECRET, LISTEN_ADDRESS};
+use services::environment::LISTEN_ADDRESS;
 use services::webrtc;
 
 use dashmap::DashMap;
-// use std::collections::HashMap;
 // use std::io::Write;
 use async_std::net::{TcpListener, TcpStream};
 use async_std::prelude::*;
@@ -34,7 +33,6 @@ use crate::methods::{
     RpcApiResponse,
 };
 use crate::services::encryption::{generate,random_number};
-// use jsonwebtoken::{decode, encode, Header, Validation};
 
 struct RpcClient {
     id: String,
@@ -46,6 +44,7 @@ async fn main() {
     database::connect().await;
     println!("Database is connected");
     webrtc::create_workers().await;
+    println!("SFU workers have spawned");
     let clients = Arc::new(Mutex::new(DashMap::new()));
     let server = TcpListener::bind(LISTEN_ADDRESS.to_owned()).await.unwrap();
     println!("Server is running on port 9000");
