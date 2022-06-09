@@ -1,0 +1,36 @@
+name: Rust
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      verbose:
+        description: 'Output verbose build information'
+        required: true 
+        type: boolean 
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: upgrade
+      run: rustup override set nightly
+    - name: nightly-fmt
+      run: rustup component add rustfmt --toolchain nightly-x86_64-unknown-linux-gnu
+    - name: nightly-clippy
+      run: rustup component add clippy --toolchain nightly-x86_64-unknown-linux-gnu
+    - name: build-verbose
+      if: ${{ github.event.inputs.verbose == 'true' }}
+      run: cargo build --verbose
+    - name: build
+      if: ${{ github.event.inputs.verbose == 'false' }}
+      run: cargo build
+    - name: lint
+      run: cargo clippy --all-targets --all-features -- -D warnings
