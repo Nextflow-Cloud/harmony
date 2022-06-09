@@ -7,7 +7,7 @@ use aes_gcm::{Aes256Gcm, Nonce};
 use flate2::read::ZlibDecoder;
 use flate2::write::ZlibEncoder;
 
-use std::io::{Read, Cursor};
+use std::io::{Cursor, Read};
 
 pub fn random_number(size: usize) -> Vec<u8> {
     let mut rng = StdRng::from_entropy();
@@ -45,7 +45,10 @@ pub fn encode(buffer: Vec<u8>, compress: bool, encrypt: Option<Aes256Gcm>) -> Ve
         if encrypt.is_some() {
             let mut nonce_bytes = random_number(96);
             let nonce = Nonce::from_slice(&nonce_bytes);
-            let mut encrypted = encrypt.unwrap().encrypt(nonce, compressed.as_slice()).unwrap();
+            let mut encrypted = encrypt
+                .unwrap()
+                .encrypt(nonce, compressed.as_slice())
+                .unwrap();
             let mut result = Vec::new();
             result.append(&mut nonce_bytes);
             result.append(&mut encrypted);
