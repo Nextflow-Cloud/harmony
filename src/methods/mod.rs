@@ -82,7 +82,7 @@ pub struct ResumeMethod {
 pub enum Response {
     Identify(IdentifyResponse) = 1,
 
-    NotFound(NotFoundResponse) = 3,
+    Error(ErrorResponse) = 3,
 
     Capabilities(CapabilitiesResponse) = 10,
     Transport(TransportResponse) = 11,
@@ -95,12 +95,11 @@ pub enum Response {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RpcApiResponse {
     pub(crate) id: Option<String>,
-    pub(crate) error: Option<String>,
     pub(crate) data: Option<Response>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct NotFoundResponse {
+pub struct ErrorResponse {
     pub(crate) error: String,
 }
 

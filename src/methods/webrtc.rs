@@ -9,9 +9,9 @@ use crate::methods::Response;
 use crate::services::webrtc;
 
 use super::{
-    CapabilitiesResponse, ConsumeMethod, ConsumeResponse, DtlsMethod, DtlsResponse,
-    NotFoundResponse, ProduceMethod, ProduceResponse, ResumeMethod, ResumeResponse,
-    TransportMethod, TransportResponse,
+    CapabilitiesResponse, ConsumeMethod, ConsumeResponse, DtlsMethod, DtlsResponse, ErrorResponse,
+    ProduceMethod, ProduceResponse, ResumeMethod, ResumeResponse, TransportMethod,
+    TransportResponse,
 };
 
 pub async fn capabilities(
@@ -35,7 +35,7 @@ pub async fn transport(method: TransportMethod) -> Response {
             dtls_parameters: t.3,
             sctp_parameters: t.4,
         }),
-        Err(e) => Response::NotFound(NotFoundResponse {
+        Err(e) => Response::Error(ErrorResponse {
             error: "Failed to create transport.".to_string(),
         }), // Uh oh
     }
@@ -60,11 +60,9 @@ pub async fn produce(method: ProduceMethod) -> Response {
             rtp_parameters: p.2,
             producer_type: p.3,
         }),
-        Err(e) => {
-            Response::NotFound(NotFoundResponse {
-                error: "An error occurred while attempting to produce.".to_string(),
-            }) // TODO: Don't use NotFound, use error property
-        }
+        Err(e) => Response::Error(ErrorResponse {
+            error: "An error occurred while attempting to produce.".to_string(),
+        }),
     }
 }
 
@@ -86,11 +84,9 @@ pub async fn consume(method: ConsumeMethod) -> Response {
             producer_id: c.4,
             producer_paused: c.5,
         }),
-        Err(e) => {
-            Response::NotFound(NotFoundResponse {
-                error: "An error occurred while attempting to consume.".to_string(),
-            }) // TODO: Don't use NotFound, use error property
-        }
+        Err(e) => Response::Error(ErrorResponse {
+            error: "An error occurred while attempting to consume.".to_string(),
+        }),
     }
 }
 

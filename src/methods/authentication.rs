@@ -7,7 +7,7 @@ use async_tungstenite::WebSocketStream;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
 
-use crate::methods::{IdentifyMethod, IdentifyResponse, NotFoundResponse, Response};
+use crate::methods::{ErrorResponse, IdentifyMethod, IdentifyResponse, Response};
 use crate::services::environment::JWT_SECRET;
 
 #[derive(Deserialize)]
@@ -32,7 +32,7 @@ pub fn identify(
     );
     match token_message {
         Ok(r) => Response::Identify(IdentifyResponse { success: true }),
-        Err(e) => Response::NotFound(NotFoundResponse {
+        Err(e) => Response::Error(ErrorResponse {
             error: "Invalid token".to_string(),
         }),
     }

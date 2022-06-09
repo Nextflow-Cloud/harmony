@@ -11,13 +11,13 @@ use dashmap::DashMap;
 use futures_util::SinkExt;
 use once_cell::sync::OnceCell;
 use rand_core::OsRng;
-use rmp_serde::{Deserializer, Serializer};
+use rmp_serde::{decode::Error, Deserializer, Serializer};
 use serde::{Deserialize, Serialize};
 use x25519_dalek::{EphemeralSecret, PublicKey};
 
 use crate::{
     methods::{
-        self, Event, HelloEvent, Method, NotFoundResponse, Response, RpcApiEvent, RpcApiMethod,
+        self, ErrorResponse, Event, HelloEvent, Method, Response, RpcApiEvent, RpcApiMethod,
         RpcApiResponse,
     },
     services::encryption::{generate, random_number},
@@ -79,44 +79,47 @@ async fn connection_loop() {
                         Message::Binary(bin) => {
                             println!("Received binary data");
                             let mut deserializer = Deserializer::new(bin.as_slice());
-                            let result: RpcApiMethod = Deserialize::deserialize(&mut deserializer)
-                                .expect("Failed to deserialize");
-                            let data = result.data.unwrap();
-                            println!("Received: {:?}", data);
-                            let dispatch: Response = match data {
-                                Method::Identify(m) => {
-                                    methods::authentication::identify(socket_arc.clone(), m)
-                                }
-                                Method::Capabilities(m) => {
-                                    methods::webrtc::capabilities(socket_arc.clone(), m).await
-                                }
-                                Method::Transport(m) => methods::webrtc::transport(m).await,
-                                Method::Dtls(m) => methods::webrtc::dtls(m).await,
-                                Method::Produce(m) => methods::webrtc::produce(m).await,
-                                Method::Consume(m) => methods::webrtc::consume(m).await,
-                                Method::Resume(m) => methods::webrtc::resume(m).await,
-                                _ => {
-                                    fn not_found(
-                                        _: Arc<Mutex<WebSocketStream<TcpStream>>>,
-                                    ) -> Response {
-                                        println!("Method not found");
-                                        Response::NotFound(NotFoundResponse {
-                                            error: "Method not found".to_string(),
-                                        })
+                            let result: Result<RpcApiMethod, Error> =
+                                Deserialize::deserialize(&mut deserializer);
+                            if let Ok(r) = result {
+                                let data = r.data.unwrap();
+                                println!("Received: {:?}", data);
+                                let dispatch: Response = match data {
+                                    Method::Identify(m) => {
+                                        methods::authentication::identify(socket_arc.clone(), m)
                                     }
-                                    not_found(socket_arc.clone())
-                                }
-                            };
-                            let mut value_buffer = Vec::new();
-                            let return_value = RpcApiResponse {
-                                id: None,
-                                error: None,
-                                data: Some(dispatch),
-                            };
-                            return_value
-                                .serialize(&mut Serializer::new(&mut value_buffer))
-                                .unwrap();
-                            socket.send(Message::Binary(value_buffer)).await.unwrap();
+                                    Method::Capabilities(m) => {
+                                        methods::webrtc::capabilities(socket_arc.clone(), m).await
+                                    }
+                                    Method::Transport(m) => methods::webrtc::transport(m).await,
+                                    Method::Dtls(m) => methods::webrtc::dtls(m).await,
+                                    Method::Produce(m) => methods::webrtc::produce(m).await,
+                                    Method::Consume(m) => methods::webrtc::consume(m).await,
+                                    Method::Resume(m) => methods::webrtc::resume(m).await,
+                                };
+                                let mut value_buffer = Vec::new();
+                                let return_value = RpcApiResponse {
+                                    id: None,
+                                    data: Some(dispatch),
+                                };
+                                return_value
+                                    .serialize(&mut Serializer::new(&mut value_buffer))
+                                    .unwrap();
+                                socket.send(Message::Binary(value_buffer)).await.unwrap();
+                            } else {
+                                let error = Response::Error(ErrorResponse {
+                                    error: "Invalid data or method not found".to_string(),
+                                });
+                                let mut value_buffer = Vec::new();
+                                let return_value = RpcApiResponse {
+                                    id: None,
+                                    data: Some(error),
+                                };
+                                return_value
+                                    .serialize(&mut Serializer::new(&mut value_buffer))
+                                    .unwrap();
+                                socket.send(Message::Binary(value_buffer)).await.unwrap();
+                            }
                         }
                         Message::Ping(bin) => {
                             println!("Received ping");
