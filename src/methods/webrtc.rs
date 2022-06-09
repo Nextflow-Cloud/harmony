@@ -5,8 +5,8 @@ use async_std::sync::Mutex;
 use async_tungstenite::WebSocketStream;
 
 use crate::methods::CapabilitiesMethod;
-use crate::services::webrtc;
 use crate::methods::Response;
+use crate::services::webrtc;
 
 use super::{
     CapabilitiesResponse, ConsumeMethod, ConsumeResponse, DtlsMethod, DtlsResponse,

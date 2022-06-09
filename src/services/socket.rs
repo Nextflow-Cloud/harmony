@@ -1,16 +1,27 @@
 use std::sync::Arc;
 
-use async_std::{net::{TcpListener, TcpStream}, sync::Mutex, task::spawn, prelude::StreamExt};
+use async_std::{
+    net::{TcpListener, TcpStream},
+    prelude::StreamExt,
+    sync::Mutex,
+    task::spawn,
+};
 use async_tungstenite::{accept_async, tungstenite::Message, WebSocketStream};
 use dashmap::DashMap;
 use futures_util::SinkExt;
 use once_cell::sync::OnceCell;
 use rand_core::OsRng;
-use rmp_serde::{Serializer, Deserializer};
+use rmp_serde::{Deserializer, Serializer};
 use serde::{Deserialize, Serialize};
 use x25519_dalek::{EphemeralSecret, PublicKey};
 
-use crate::{services::encryption::{generate, random_number}, methods::{RpcApiEvent, Event, HelloEvent, Method, self, Response, RpcApiMethod, NotFoundResponse, RpcApiResponse}};
+use crate::{
+    methods::{
+        self, Event, HelloEvent, Method, NotFoundResponse, Response, RpcApiEvent, RpcApiMethod,
+        RpcApiResponse,
+    },
+    services::encryption::{generate, random_number},
+};
 
 use super::environment::LISTEN_ADDRESS;
 
