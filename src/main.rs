@@ -14,10 +14,17 @@ use services::webrtc;
 
 #[async_std::main]
 async fn main() {
+    // TODO: logger, environment
+
     database::connect().await;
     println!("Database is connected");
+    // run DB migrations as necessary
+
     webrtc::create_workers().await;
     println!("SFU workers have spawned");
+
     socket::start_server().await;
     println!("Server is running on port 9000");
+
+    // leaving space for background tasks
 }
