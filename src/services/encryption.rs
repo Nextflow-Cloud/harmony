@@ -7,13 +7,7 @@ use aes_gcm::{Aes256Gcm, Nonce};
 use flate2::read::ZlibDecoder;
 use flate2::write::ZlibEncoder;
 
-use std::convert::TryInto;
-use std::io::Read;
-
-fn vec_to_array<T, const N: usize>(v: Vec<T>) -> [T; N] {
-    v.try_into()
-        .unwrap_or_else(|v: Vec<T>| panic!("Expected a Vec of length {} but it was {}", N, v.len()))
-}
+use std::io::{Read, Cursor};
 
 pub fn random_number(size: usize) -> Vec<u8> {
     let mut rng = StdRng::from_entropy();
@@ -49,11 +43,10 @@ pub fn encode(buffer: Vec<u8>, compress: bool, encrypt: Option<Aes256Gcm>) -> Ve
         let zlib = ZlibEncoder::new(buffer, Compression::best());
         let compressed = zlib.finish().unwrap();
         if encrypt.is_some() {
-            let nonce_bytes = random_number(96);
+            let mut nonce_bytes = random_number(96);
             let nonce = Nonce::from_slice(&nonce_bytes);
-            let no_size: &[u8] = &vec_to_array(compressed);
-            let encrypted = encrypt.unwrap().encrypt(nonce, no_size).unwrap();
-            let result = Vec::new();
+            let mut encrypted = encrypt.unwrap().encrypt(nonce, compressed.as_slice()).unwrap();
+            let mut result = Vec::new();
             result.append(&mut nonce_bytes);
             result.append(&mut encrypted);
             result
@@ -62,11 +55,10 @@ pub fn encode(buffer: Vec<u8>, compress: bool, encrypt: Option<Aes256Gcm>) -> Ve
         }
     } else {
         if encrypt.is_some() {
-            let nonce_bytes = random_number(96);
+            let mut nonce_bytes = random_number(96);
             let nonce = Nonce::from_slice(&nonce_bytes);
-            let no_size: &[u8] = &vec_to_array(buffer);
-            let encrypted = encrypt.unwrap().encrypt(nonce, no_size).unwrap();
-            let result = Vec::new();
+            let mut encrypted = encrypt.unwrap().encrypt(nonce, buffer.as_slice()).unwrap();
+            let mut result = Vec::new();
             result.append(&mut nonce_bytes);
             result.append(&mut encrypted);
             result
@@ -76,15 +68,13 @@ pub fn encode(buffer: Vec<u8>, compress: bool, encrypt: Option<Aes256Gcm>) -> Ve
     }
 }
 
-pub fn decode(buffer: Vec<u8>, compress: bool, encrypt: Option<Aes256Gcm>) -> Vec<u8> {
+pub fn decode(mut buffer: Vec<u8>, compress: bool, encrypt: Option<Aes256Gcm>) -> Vec<u8> {
     if encrypt.is_some() {
-        let nonce_split = buffer.split_off(96);
-        let nonce_bytes: &[u8] = &vec_to_array(nonce_split);
+        let data = buffer.split_off(96);
         let nonce = Nonce::from_slice(&buffer);
-        let decrypted = encrypt.unwrap().decrypt(nonce, nonce_bytes).unwrap();
+        let decrypted = encrypt.unwrap().decrypt(nonce, data.as_slice()).unwrap();
         if compress {
-            let data_bytes: &[u8] = &vec_to_array(buffer);
-            let zlib = ZlibDecoder::new(data_bytes);
+            let mut zlib = ZlibDecoder::new(Cursor::new(decrypted));
             let mut buf = Vec::new();
             zlib.read_to_end(&mut buf).unwrap();
             buf
@@ -93,8 +83,7 @@ pub fn decode(buffer: Vec<u8>, compress: bool, encrypt: Option<Aes256Gcm>) -> Ve
         }
     } else {
         if compress {
-            let data_bytes: &[u8] = &vec_to_array(buffer);
-            let zlib = ZlibDecoder::new(data_bytes);
+            let mut zlib = ZlibDecoder::new(Cursor::new(buffer));
             let mut buf = Vec::new();
             zlib.read_to_end(&mut buf).unwrap();
             buf
