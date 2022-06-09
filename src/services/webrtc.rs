@@ -1,9 +1,8 @@
 use std::sync::atomic::{AtomicUsize, Ordering::Relaxed};
 use std::sync::Arc;
 
-use async_std::net::{IpAddr::V4, Ipv4Addr, TcpStream};
+use async_std::net::{IpAddr::V4, Ipv4Addr};
 use async_std::sync::Mutex;
-use async_tungstenite::WebSocketStream;
 use dashmap::DashMap;
 use lazy_static::lazy_static;
 use mediasoup::consumer::{Consumer, ConsumerId, ConsumerOptions, ConsumerType};
@@ -21,16 +20,17 @@ use mediasoup::webrtc_transport::{
 use mediasoup::worker::{RequestError, Worker, WorkerSettings};
 use mediasoup::worker_manager::WorkerManager;
 
+use super::socket::RpcClient;
+
 lazy_static! {
     static ref WORKERS: Arc<Mutex<Vec<Arc<Worker>>>> = Arc::new(Mutex::new(Vec::new()));
     static ref WORKER_INDEX: AtomicUsize = AtomicUsize::new(0);
-    static ref CALLS: DashMap<String, Arc<Call>> = DashMap::new();
+    static ref CALLS: DashMap<String, Arc<Mutex<Call>>> = DashMap::new();
 }
 
 pub struct CallMember {
-    id: String,
-    user_id: String,
-    socket: Arc<Mutex<WebSocketStream<TcpStream>>>,
+    client: RpcClient,
+    transports: Arc<Mutex<Vec<String>>>,
 }
 
 pub struct Call {
@@ -62,7 +62,8 @@ impl Call {
         self.router.rtp_capabilities().clone()
     }
     pub async fn create_transport(
-        &self,
+        &mut self,
+        user: RpcClient,
     ) -> Result<
         (
             TransportId,
@@ -73,6 +74,16 @@ impl Call {
         ),
         RequestError,
     > {
+        if !(&self.members)
+            .into_iter()
+            .find(|&item| item.client.get_user_id() == user.get_user_id())
+            .is_some()
+        {
+            self.members.push(CallMember {
+                client: user.clone(),
+                transports: Arc::new(Mutex::new(Vec::new())),
+            })
+        }
         let listen_ips = TransportListenIps::new(TransportListenIp {
             ip: V4(Ipv4Addr::new(0, 0, 0, 0)),
             announced_ip: Some(V4(Ipv4Addr::new(0, 0, 0, 0))), // TODO: use env instead of actual public ip
@@ -88,6 +99,11 @@ impl Call {
                 let ice_candidates = t.ice_candidates().clone();
                 let dtls_parameters = t.dtls_parameters();
                 let sctp_parameters = t.sctp_parameters();
+                let member = (&self.members)
+                    .into_iter()
+                    .find(|&item| item.client.get_user_id() == user.get_user_id())
+                    .unwrap();
+                member.transports.lock().await.push(t.id().to_string());
                 self.transports.insert(t.id().to_string(), t);
                 Ok((
                     id,
@@ -195,14 +211,14 @@ pub async fn get_worker() -> Arc<Worker> {
     worker
 }
 
-pub async fn get_call(channel_id: String) -> Arc<Call> {
+pub async fn get_call(channel_id: String) -> Arc<Mutex<Call>> {
     let call = CALLS.get(&channel_id);
     match call {
         Some(c) => c.value().clone(),
         None => {
             let new_call = Call::new(channel_id.clone()).await;
             CALLS
-                .insert(channel_id.clone(), Arc::new(new_call))
+                .insert(channel_id.clone(), Arc::new(Mutex::new(new_call)))
                 .unwrap()
         }
     }

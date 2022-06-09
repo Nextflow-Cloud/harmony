@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use async_std::net::TcpStream;
 use async_std::sync::Mutex;
-use async_tungstenite::WebSocketStream;
+use dashmap::DashMap;
 
 use crate::methods::CapabilitiesMethod;
 use crate::methods::Response;
+use crate::services::socket::RpcClient;
 use crate::services::webrtc;
 
 use super::{
@@ -14,19 +14,24 @@ use super::{
     TransportResponse,
 };
 
-pub async fn capabilities(
-    socket: Arc<Mutex<WebSocketStream<TcpStream>>>,
-    method: CapabilitiesMethod,
-) -> Response {
-    let call = webrtc::get_call(method.channel_id).await;
+pub async fn capabilities(method: CapabilitiesMethod) -> Response {
+    let call_mutex = webrtc::get_call(method.channel_id).await;
+    let call = call_mutex.lock().await;
     Response::Capabilities(CapabilitiesResponse {
         rtp_capabilities: call.get_rtp_capabilities(),
     })
 }
 
-pub async fn transport(method: TransportMethod) -> Response {
-    let call = webrtc::get_call(method.channel_id).await;
-    let transport = call.create_transport().await;
+pub async fn transport(
+    method: TransportMethod,
+    clients: Arc<Mutex<DashMap<String, RpcClient>>>,
+    id: String,
+) -> Response {
+    let clients_locked = clients.lock().await;
+    let client = clients_locked.get(&id).unwrap();
+    let call_mutex = webrtc::get_call(method.channel_id).await;
+    let mut call = call_mutex.lock().await;
+    let transport = call.create_transport(client.clone()).await;
     match transport {
         Ok(t) => Response::Transport(TransportResponse {
             id: t.0,
@@ -38,18 +43,21 @@ pub async fn transport(method: TransportMethod) -> Response {
         Err(e) => Response::Error(ErrorResponse {
             error: "Failed to create transport.".to_string(),
         }), // Uh oh
+            // TODO: catch and log all errors using Logger
     }
 }
 
 pub async fn dtls(method: DtlsMethod) -> Response {
-    let call = webrtc::get_call(method.channel_id).await;
+    let call_mutex = webrtc::get_call(method.channel_id).await;
+    let call = call_mutex.lock().await;
     call.connect_transport(method.transport_id, method.dtls_parameters)
         .await;
     Response::Dtls(DtlsResponse {})
 }
 
 pub async fn produce(method: ProduceMethod) -> Response {
-    let call = webrtc::get_call(method.channel_id).await;
+    let call_mutex = webrtc::get_call(method.channel_id).await;
+    let call = call_mutex.lock().await;
     let produce = call
         .produce(method.transport_id, method.kind, method.rtp_parameters)
         .await;
@@ -67,7 +75,8 @@ pub async fn produce(method: ProduceMethod) -> Response {
 }
 
 pub async fn consume(method: ConsumeMethod) -> Response {
-    let call = webrtc::get_call(method.channel_id).await;
+    let call_mutex = webrtc::get_call(method.channel_id).await;
+    let call = call_mutex.lock().await;
     let consume = call
         .consume(
             method.transport_id,
@@ -91,7 +100,8 @@ pub async fn consume(method: ConsumeMethod) -> Response {
 }
 
 pub async fn resume(method: ResumeMethod) -> Response {
-    let call = webrtc::get_call(method.channel_id).await;
+    let call_mutex = webrtc::get_call(method.channel_id).await;
+    let call = call_mutex.lock().await;
     call.resume(method.consumer_id).await;
     Response::Resume(ResumeResponse {})
 }

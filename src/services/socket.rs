@@ -27,9 +27,20 @@ use super::environment::LISTEN_ADDRESS;
 
 static SERVER: OnceCell<TcpListener> = OnceCell::new();
 
-struct RpcClient {
-    id: String,
-    socket: Arc<Mutex<WebSocketStream<TcpStream>>>,
+#[derive(Clone)]
+pub struct RpcClient {
+    pub(crate) id: String,
+    pub(crate) socket: Arc<Mutex<WebSocketStream<TcpStream>>>,
+    pub(crate) user_id: Option<String>,
+}
+
+impl RpcClient {
+    pub fn get_user_id(&self) -> String {
+        match &self.user_id {
+            Some(v) => v.to_string(),
+            None => "".to_string(),
+        }
+    }
 }
 
 pub async fn start_server() {
@@ -60,6 +71,7 @@ async fn connection_loop() {
             let client = RpcClient {
                 id: id.clone(),
                 socket: socket_arc.clone(),
+                user_id: None,
             };
             clients_arc.lock().await.insert(id.clone(), client);
             let mut socket = socket_arc.lock().await;
@@ -86,12 +98,24 @@ async fn connection_loop() {
                                 println!("Received: {:?}", data);
                                 let dispatch: Response = match data {
                                     Method::Identify(m) => {
-                                        methods::authentication::identify(socket_arc.clone(), m)
+                                        methods::authentication::identify(
+                                            m,
+                                            clients_arc.clone(),
+                                            id.clone(),
+                                        )
+                                        .await
                                     }
                                     Method::Capabilities(m) => {
-                                        methods::webrtc::capabilities(socket_arc.clone(), m).await
+                                        methods::webrtc::capabilities(m).await
                                     }
-                                    Method::Transport(m) => methods::webrtc::transport(m).await,
+                                    Method::Transport(m) => {
+                                        methods::webrtc::transport(
+                                            m,
+                                            clients_arc.clone(),
+                                            id.clone(),
+                                        )
+                                        .await
+                                    }
                                     Method::Dtls(m) => methods::webrtc::dtls(m).await,
                                     Method::Produce(m) => methods::webrtc::produce(m).await,
                                     Method::Consume(m) => methods::webrtc::consume(m).await,
