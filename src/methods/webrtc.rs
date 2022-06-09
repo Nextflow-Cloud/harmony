@@ -40,7 +40,7 @@ pub async fn transport(
             dtls_parameters: t.3,
             sctp_parameters: t.4,
         }),
-        Err(e) => Response::Error(ErrorResponse {
+        Err(_) => Response::Error(ErrorResponse {
             error: "Failed to create transport.".to_string(),
         }), // Uh oh
             // TODO: catch and log all errors using Logger
@@ -68,7 +68,7 @@ pub async fn produce(method: ProduceMethod) -> Response {
             rtp_parameters: p.2,
             producer_type: p.3,
         }),
-        Err(e) => Response::Error(ErrorResponse {
+        Err(_) => Response::Error(ErrorResponse {
             error: "An error occurred while attempting to produce.".to_string(),
         }),
     }
@@ -93,7 +93,7 @@ pub async fn consume(method: ConsumeMethod) -> Response {
             producer_id: c.4,
             producer_paused: c.5,
         }),
-        Err(e) => Response::Error(ErrorResponse {
+        Err(_) => Response::Error(ErrorResponse {
             error: "An error occurred while attempting to consume.".to_string(),
         }),
     }

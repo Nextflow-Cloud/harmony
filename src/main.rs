@@ -1,5 +1,6 @@
 #![feature(arbitrary_enum_discriminant)]
 #![feature(async_closure)]
+#![allow(dead_code)]
 
 pub mod globals;
 pub mod methods;

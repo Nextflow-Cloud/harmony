@@ -39,7 +39,7 @@ pub async fn identify(
             client.user_id = Some(r.claims.id);
             Response::Identify(IdentifyResponse { success: true })
         }
-        Err(e) => Response::Error(ErrorResponse {
+        Err(_) => Response::Error(ErrorResponse {
             error: "Invalid token".to_string(),
         }),
     }
