@@ -6,9 +6,9 @@ use dashmap::DashMap;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
 
-use crate::methods::{ErrorResponse, IdentifyMethod, IdentifyResponse, Response};
+use crate::methods::voice::{ErrorResponse, IdentifyMethod, IdentifyResponse, Response};
 use crate::services::environment::JWT_SECRET;
-use crate::services::socket::RpcClient;
+use crate::services::socket::VoiceClient;
 
 #[derive(Deserialize)]
 struct User {
@@ -22,7 +22,7 @@ struct User {
 // (e.g. SSO system)
 pub async fn identify(
     method: IdentifyMethod,
-    clients: Arc<Mutex<DashMap<String, RpcClient>>>,
+    clients: Arc<Mutex<DashMap<String, VoiceClient>>>,
     id: String,
 ) -> Response {
     println!("Public key: {:?}", method.public_key);

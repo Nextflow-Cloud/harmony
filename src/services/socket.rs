@@ -16,9 +16,9 @@ use serde::{Deserialize, Serialize};
 use x25519_dalek::{EphemeralSecret, PublicKey};
 
 use crate::{
-    methods::{
-        self, ErrorResponse, Event, HelloEvent, Method, Response, RpcApiEvent, RpcApiMethod,
-        RpcApiResponse,
+    methods::voice::{
+        self, ErrorResponse, Event, HelloEvent, Method, Response, VoiceApiEvent, VoiceApiMethod,
+        VoiceApiResponse,
     },
     services::encryption::{generate, random_number},
 };
@@ -28,13 +28,13 @@ use super::environment::LISTEN_ADDRESS;
 static SERVER: OnceCell<TcpListener> = OnceCell::new();
 
 #[derive(Clone)]
-pub struct RpcClient {
+pub struct VoiceClient {
     pub(crate) id: String,
     pub(crate) socket: Arc<Mutex<WebSocketStream<TcpStream>>>,
     pub(crate) user_id: Option<String>,
 }
 
-impl RpcClient {
+impl VoiceClient {
     pub fn get_user_id(&self) -> String {
         match &self.user_id {
             Some(v) => v.to_string(),
@@ -68,7 +68,7 @@ async fn connection_loop() {
                 ],
                 10,
             );
-            let client = RpcClient {
+            let client = VoiceClient {
                 id: id.clone(),
                 socket: socket_arc.clone(),
                 user_id: None,
@@ -78,7 +78,7 @@ async fn connection_loop() {
             let secret = EphemeralSecret::new(OsRng);
             let public_key = PublicKey::from(&secret);
             let mut buf = Vec::new();
-            let val = RpcApiEvent {
+            let val = VoiceApiEvent {
                 data: Some(Event::Hello(HelloEvent {
                     public_key: public_key.to_bytes().to_vec(),
                 })),
@@ -91,14 +91,14 @@ async fn connection_loop() {
                         Message::Binary(bin) => {
                             println!("Received binary data");
                             let mut deserializer = Deserializer::new(bin.as_slice());
-                            let result: Result<RpcApiMethod, Error> =
+                            let result: Result<VoiceApiMethod, Error> =
                                 Deserialize::deserialize(&mut deserializer);
                             if let Ok(r) = result {
                                 let data = r.data.unwrap();
                                 println!("Received: {:?}", data);
                                 let dispatch: Response = match data {
                                     Method::Identify(m) => {
-                                        methods::authentication::identify(
+                                        voice::authentication::identify(
                                             m,
                                             clients_arc.clone(),
                                             id.clone(),
@@ -106,23 +106,23 @@ async fn connection_loop() {
                                         .await
                                     }
                                     Method::Capabilities(m) => {
-                                        methods::webrtc::capabilities(m).await
+                                        voice::webrtc::capabilities(m).await
                                     }
                                     Method::Transport(m) => {
-                                        methods::webrtc::transport(
+                                        voice::webrtc::transport(
                                             m,
                                             clients_arc.clone(),
                                             id.clone(),
                                         )
                                         .await
                                     }
-                                    Method::Dtls(m) => methods::webrtc::dtls(m).await,
-                                    Method::Produce(m) => methods::webrtc::produce(m).await,
-                                    Method::Consume(m) => methods::webrtc::consume(m).await,
-                                    Method::Resume(m) => methods::webrtc::resume(m).await,
+                                    Method::Dtls(m) => voice::webrtc::dtls(m).await,
+                                    Method::Produce(m) => voice::webrtc::produce(m).await,
+                                    Method::Consume(m) => voice::webrtc::consume(m).await,
+                                    Method::Resume(m) => voice::webrtc::resume(m).await,
                                 };
                                 let mut value_buffer = Vec::new();
-                                let return_value = RpcApiResponse {
+                                let return_value = VoiceApiResponse {
                                     id: None,
                                     data: Some(dispatch),
                                 };
@@ -135,7 +135,7 @@ async fn connection_loop() {
                                     error: "Invalid data or method not found".to_string(),
                                 });
                                 let mut value_buffer = Vec::new();
-                                let return_value = RpcApiResponse {
+                                let return_value = VoiceApiResponse {
                                     id: None,
                                     data: Some(error),
                                 };

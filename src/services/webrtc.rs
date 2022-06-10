@@ -20,7 +20,7 @@ use mediasoup::webrtc_transport::{
 use mediasoup::worker::{RequestError, Worker, WorkerSettings};
 use mediasoup::worker_manager::WorkerManager;
 
-use super::socket::RpcClient;
+use super::socket::VoiceClient;
 
 lazy_static! {
     static ref WORKERS: Arc<Mutex<Vec<Arc<Worker>>>> = Arc::new(Mutex::new(Vec::new()));
@@ -29,7 +29,7 @@ lazy_static! {
 }
 
 pub struct CallMember {
-    client: RpcClient,
+    client: VoiceClient,
     transports: Arc<Mutex<Vec<String>>>,
 }
 
@@ -63,7 +63,7 @@ impl Call {
     }
     pub async fn create_transport(
         &mut self,
-        user: RpcClient,
+        user: VoiceClient,
     ) -> Result<
         (
             TransportId,

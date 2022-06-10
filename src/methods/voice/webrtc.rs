@@ -3,9 +3,9 @@ use std::sync::Arc;
 use async_std::sync::Mutex;
 use dashmap::DashMap;
 
-use crate::methods::CapabilitiesMethod;
-use crate::methods::Response;
-use crate::services::socket::RpcClient;
+use crate::methods::voice::CapabilitiesMethod;
+use crate::methods::voice::Response;
+use crate::services::socket::VoiceClient;
 use crate::services::webrtc;
 
 use super::{
@@ -24,7 +24,7 @@ pub async fn capabilities(method: CapabilitiesMethod) -> Response {
 
 pub async fn transport(
     method: TransportMethod,
-    clients: Arc<Mutex<DashMap<String, RpcClient>>>,
+    clients: Arc<Mutex<DashMap<String, VoiceClient>>>,
     id: String,
 ) -> Response {
     let clients_locked = clients.lock().await;
