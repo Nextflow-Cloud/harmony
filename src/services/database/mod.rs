@@ -1,3 +1,5 @@
+pub mod channels;
+
 use crate::services::environment::{MONGODB_DATABASE, MONGODB_URI};
 
 use mongodb::{Client, Database};
