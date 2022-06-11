@@ -1,5 +1,6 @@
 #![feature(arbitrary_enum_discriminant)]
 #![feature(async_closure)]
+#![feature(slice_pattern)]
 #![allow(dead_code)]
 
 pub mod globals;
@@ -18,6 +19,7 @@ use warp::Filter;
 #[async_std::main]
 async fn main() {
     // TODO: logger, environment
+    // TODO: negotiate encryption
 
     database::connect().await;
     println!("Database is connected");
