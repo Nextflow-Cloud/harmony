@@ -6,12 +6,10 @@ pub mod globals;
 pub mod methods;
 pub mod services;
 
-use std::thread::sleep;
-use std::time::Duration;
-
 use services::database;
 use services::socket;
 use services::webrtc;
+use warp::Filter;
 
 // use std::io::Write;
 
@@ -33,7 +31,12 @@ async fn main() {
 
     // leaving space for background tasks
 
-    loop {
-        sleep(Duration::from_secs(1))
-    }
+    let rpc = warp::post()
+        .and(warp::path("api/rpc"))
+        .and(warp::body::bytes())
+        .map(methods::rpc::routes);
+
+    warp::serve(rpc)
+        .run(([0, 0, 0, 0], 8080))
+        .await;
 }
