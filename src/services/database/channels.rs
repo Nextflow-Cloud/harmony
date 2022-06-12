@@ -34,7 +34,7 @@ pub enum Channel {
 
 pub async fn get_channel(channel_id: String) -> Result<Option<Channel>, Error> {
     let database = super::get_database();
-    let channel = database
+    database
         .collection::<Channel>("channels")
         .find_one(
             doc! {
@@ -42,6 +42,5 @@ pub async fn get_channel(channel_id: String) -> Result<Option<Channel>, Error> {
             },
             None,
         )
-        .await;
-    channel
+        .await
 }
