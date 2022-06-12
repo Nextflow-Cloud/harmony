@@ -105,16 +105,10 @@ async fn connection_loop() {
                                         )
                                         .await
                                     }
-                                    Method::Capabilities(m) => {
-                                        voice::webrtc::capabilities(m).await
-                                    }
+                                    Method::Capabilities(m) => voice::webrtc::capabilities(m).await,
                                     Method::Transport(m) => {
-                                        voice::webrtc::transport(
-                                            m,
-                                            clients_arc.clone(),
-                                            id.clone(),
-                                        )
-                                        .await
+                                        voice::webrtc::transport(m, clients_arc.clone(), id.clone())
+                                            .await
                                     }
                                     Method::Dtls(m) => voice::webrtc::dtls(m).await,
                                     Method::Produce(m) => voice::webrtc::produce(m).await,

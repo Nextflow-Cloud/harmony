@@ -38,7 +38,5 @@ async fn main() {
         .and(warp::body::bytes())
         .map(methods::rpc::routes);
 
-    warp::serve(rpc)
-        .run(([0, 0, 0, 0], 8080))
-        .await;
+    warp::serve(rpc).run(([0, 0, 0, 0], 8080)).await;
 }

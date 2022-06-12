@@ -3,33 +3,49 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Scope {
-    id: String, 
+    id: String,
     name: String,
     disabled: bool,
     nexuses: Vec<String>,
     channels: Vec<String>,
-    users: Vec<String>
+    users: Vec<String>,
 }
 
 // Must be platform_administrator
 pub async fn create_scope(name: String) -> Result<(), Error> {
     let scopes = super::get_database().collection::<Scope>("scopes");
-    scopes.insert_one(Scope {
-        id: crate::services::encryption::generate_id(),
-        name,
-        disabled: false,
-        nexuses: Vec::new(),
-        channels: Vec::new(),
-        users: Vec::new()
-    }, None).await?;
+    scopes
+        .insert_one(
+            Scope {
+                id: crate::services::encryption::generate_id(),
+                name,
+                disabled: false,
+                nexuses: Vec::new(),
+                channels: Vec::new(),
+                users: Vec::new(),
+            },
+            None,
+        )
+        .await?;
     Ok(())
 }
 
-pub async fn update_scope(id: String, name: Option<String>, disabled: Option<bool>, add_users: Vec<String>, remove_users: Vec<String>) -> Result<bool, Error> {
+pub async fn update_scope(
+    id: String,
+    name: Option<String>,
+    disabled: Option<bool>,
+    add_users: Vec<String>,
+    remove_users: Vec<String>,
+) -> Result<bool, Error> {
     let scopes = super::get_database().collection::<Scope>("scopes");
-    let scope = scopes.find_one(doc! {
-        "id": id
-    }, None).await?;
+    let scope = scopes
+        .find_one(
+            doc! {
+                "id": id
+            },
+            None,
+        )
+        .await?;
     match scope {
         Some(mut s) => {
             if let Some(n) = name {
@@ -51,11 +67,10 @@ pub async fn update_scope(id: String, name: Option<String>, disabled: Option<boo
                 }
             }
             Ok(true)
-        },
+        }
         None => Ok(false),
     }
 }
-
 
 // TODO: warn user that this is a destructive action
 pub async fn delete_scope(id: String) -> Result<bool, Error> {
@@ -63,9 +78,14 @@ pub async fn delete_scope(id: String) -> Result<bool, Error> {
         Ok(false) // The global scope may not be deleted
     } else {
         let scopes = super::get_database().collection::<Scope>("scopes");
-        scopes.delete_one(doc! {
-            "id": id
-        }, None).await?;
+        scopes
+            .delete_one(
+                doc! {
+                    "id": id
+                },
+                None,
+            )
+            .await?;
         Ok(true)
     }
 }

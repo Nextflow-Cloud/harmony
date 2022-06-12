@@ -21,18 +21,22 @@ pub struct User {
     profile_banner: String, // TODO: Make use of file handling
     profile_description: String,
     presence: Presence,
-    online: bool, 
-    display_name: String, 
+    online: bool,
+    display_name: String,
     // usernames on Nextflow are unique
     // can set a display name for better visibility
-    platform_administrator: bool 
-    // TODO: should be implemented globally
-    // on SSO system user data
+    platform_administrator: bool, // TODO: should be implemented globally
+                                  // on SSO system user data
 }
 
 pub async fn get_user(id: String) -> Result<Option<User>, Error> {
     let users = super::get_database().collection::<User>("users");
-    users.find_one(doc! {
-        "id": id
-    }, None).await
+    users
+        .find_one(
+            doc! {
+                "id": id
+            },
+            None,
+        )
+        .await
 }
