@@ -1,4 +1,5 @@
 pub mod channels;
+pub mod users;
 
 use crate::services::environment::{MONGODB_DATABASE, MONGODB_URI};
 
