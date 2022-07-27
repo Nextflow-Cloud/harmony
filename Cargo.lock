@@ -1123,9 +1123,9 @@ dependencies = [
 
 [[package]]
 name = "mediasoup"
-version = "0.9.3"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "447fce54609d17f3a91084cd6911cfb4e0e117a637617054e17a78859c830572"
+checksum = "3fb5d8d2708b86fcb4448de2bde696b9670b9bb9aed6fccf904cd70e7bc2d586"
 dependencies = [
  "async-channel",
  "async-executor",
@@ -1154,9 +1154,9 @@ dependencies = [
 
 [[package]]
 name = "mediasoup-sys"
-version = "0.3.3"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4475c581332565ff35669f3dbb155a4dbbe227932759c281d78d3d1adbb7f98d"
+checksum = "0d4335e6b96074f2d9c864958878ffe3fa5037ee3e62c16a858592888d5d70df"
 
 [[package]]
 name = "memchr"

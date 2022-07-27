@@ -6,7 +6,7 @@ use async_std::sync::Mutex;
 use dashmap::DashMap;
 use lazy_static::lazy_static;
 use mediasoup::consumer::{Consumer, ConsumerId, ConsumerOptions, ConsumerType};
-use mediasoup::prelude::{DtlsParameters, IceCandidate, IceParameters, TransportListenIp};
+use mediasoup::data_structures::{DtlsParameters, IceCandidate, IceParameters, ListenIp};
 use mediasoup::producer::{Producer, ProducerId, ProducerOptions, ProducerType};
 use mediasoup::router::{Router, RouterOptions};
 use mediasoup::rtp_parameters::{
@@ -83,7 +83,7 @@ impl Call {
                 transports: Arc::new(Mutex::new(Vec::new())),
             })
         }
-        let listen_ips = TransportListenIps::new(TransportListenIp {
+        let listen_ips = TransportListenIps::new(ListenIp {
             ip: V4(Ipv4Addr::new(0, 0, 0, 0)),
             announced_ip: Some(V4(Ipv4Addr::new(0, 0, 0, 0))), // TODO: use env instead of actual public ip
         });

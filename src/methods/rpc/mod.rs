@@ -1,22 +1,22 @@
 use core::slice::SlicePattern;
 
-use rmp_serde::{Deserializer, decode::Error, Serializer};
+use rmp_serde::{decode::Error, Deserializer, Serializer};
 use serde::{Deserialize, Serialize};
-use warp::{hyper::body::Bytes, Reply, http::StatusCode};
+use warp::{http::StatusCode, hyper::body::Bytes, Reply};
 
 use crate::services::database::users::Presence;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum RpcApiMethod {
     CreateScope {
-        name: String
+        name: String,
     },
     DeleteScope {
-        id: String
+        id: String,
     },
 
     FetchUser {
-        id: Option<String>
+        id: Option<String>,
     },
     UpdateUser {
         profile_banner: Option<String>, // TODO: Make use of file handling
@@ -25,24 +25,24 @@ pub enum RpcApiMethod {
     },
     // BEGIN global scope only
     AddFriend {
-        user_id: String
+        user_id: String,
     },
     RemoveFriend {
-        user_id: String
+        user_id: String,
     },
     LookupUser {
-        username: String
-    }, 
+        username: String,
+    },
     // lookup user by id?
     // returns PartialUser
     FetchMutual {
-        user_id: String
+        user_id: String,
     },
     AddBlock {
-        user_id: String
+        user_id: String,
     },
     RemoveBlock {
-        user_id: String
+        user_id: String,
     },
     // END global scope only
     FetchPrivateChannels {},
@@ -51,37 +51,32 @@ pub enum RpcApiMethod {
         // TODO: ChannelType in database
     },
     FetchChannel {
-        id: String
+        id: String,
     },
-    UpdateChannel {
-
-    },
+    UpdateChannel {},
     DeleteChannel {
-        id: String
-    }
+        id: String,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum RpcApiResponse {
-    Error {
-        error: String
-    }
+    Error { error: String },
 }
 
 // Warp router
 pub fn routes(data: Bytes) -> impl Reply {
     let mut deserializer = Deserializer::new(data.as_slice());
-    let result: Result<RpcApiMethod, Error> =
-        Deserialize::deserialize(&mut deserializer);
+    let result: Result<RpcApiMethod, Error> = Deserialize::deserialize(&mut deserializer);
     match result {
         Ok(_) => todo!(),
         Err(_) => {
             let mut buf = Vec::new();
             let val = RpcApiResponse::Error {
-                error: "Invalid encoding".to_string()
+                error: "Invalid encoding".to_string(),
             };
             val.serialize(&mut Serializer::new(&mut buf)).unwrap();
             warp::reply::with_status(buf, StatusCode::BAD_REQUEST)
-        },
+        }
     }
 }
