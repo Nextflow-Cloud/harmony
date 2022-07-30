@@ -34,7 +34,7 @@ async fn main() {
     // leaving space for background tasks
 
     let rpc = warp::post()
-        .and(warp::path("api/rpc"))
+        .and(warp::path!("api" / "rpc"))
         .and(warp::body::bytes())
         .map(methods::rpc::routes);
 
