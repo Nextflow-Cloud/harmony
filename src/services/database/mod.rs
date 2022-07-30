@@ -21,5 +21,5 @@ pub fn get_connection() -> &'static Client {
 }
 
 pub fn get_database() -> Database {
-    get_connection().database(&*MONGODB_DATABASE)
+    get_connection().database(&MONGODB_DATABASE)
 }

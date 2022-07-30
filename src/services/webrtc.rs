@@ -74,7 +74,7 @@ impl Call {
         ),
         RequestError,
     > {
-        if !(&self.members)
+        if !(self.members)
             .iter()
             .any(|item| item.client.get_user_id() == user.get_user_id())
         {
@@ -98,7 +98,7 @@ impl Call {
                 let ice_candidates = t.ice_candidates().clone();
                 let dtls_parameters = t.dtls_parameters();
                 let sctp_parameters = t.sctp_parameters();
-                let member = (&self.members)
+                let member = (self.members)
                     .iter()
                     .find(|&item| item.client.get_user_id() == user.get_user_id())
                     .unwrap();
