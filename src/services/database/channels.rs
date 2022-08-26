@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 pub enum Channel {
     PrivateChannel {
         id: String,
-        members: Vec<String>, // array of member ids
+        initiator_id: String,
+        peer_id: String,
         scope_id: String,     // scope: "global" or id
     },
     GroupChannel {
