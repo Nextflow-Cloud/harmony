@@ -23,7 +23,7 @@ pub enum Channel {
         nexus_id: String,
         scope_id: String,
     },
-    ChatChannel {
+    MessageChannel {
         id: String,
         name: String,
         description: String,
