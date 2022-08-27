@@ -20,14 +20,14 @@ pub enum Channel {
         id: String,
         name: String,
         description: String,
-        nexus_id: String,
+        space_id: String,
         scope_id: String,
     },
     MessageChannel {
         id: String,
         name: String,
         description: String,
-        nexus_id: String,
+        space_id: String,
         // TODO: permissions
         scope_id: String,
     },
