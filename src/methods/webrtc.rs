@@ -3,8 +3,8 @@ use std::sync::Arc;
 use async_std::sync::Mutex;
 use dashmap::DashMap;
 
-use crate::methods::voice::CapabilitiesMethod;
-use crate::methods::voice::Response;
+use crate::methods::CapabilitiesMethod;
+use crate::methods::Response;
 use crate::services::socket::VoiceClient;
 use crate::services::webrtc;
 
