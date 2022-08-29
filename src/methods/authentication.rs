@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use async_std::sync::Mutex;
@@ -13,7 +14,6 @@ use crate::services::socket::VoiceClient;
 #[derive(Deserialize)]
 struct User {
     // TODO: Find the other properties
-    email: String,
     id: String,
 }
 
@@ -27,10 +27,13 @@ pub async fn identify(
 ) -> Response {
     println!("Public key: {:?}", method.public_key);
     println!("Token: {:?}", method.token);
+    let mut validation = Validation::new(Algorithm::HS256);
+    validation.required_spec_claims = HashSet::new();
+    validation.validate_exp = false;
     let token_message = decode::<User>(
         &method.token,
         &DecodingKey::from_secret(JWT_SECRET.as_ref()),
-        &Validation::new(Algorithm::HS256),
+        &validation,
     );
     match token_message {
         Ok(r) => {
