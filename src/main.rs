@@ -10,7 +10,6 @@ pub mod services;
 use services::database;
 use services::socket;
 use services::webrtc;
-use warp::Filter;
 
 // use std::io::Write;
 
@@ -28,15 +27,8 @@ async fn main() {
     webrtc::create_workers().await;
     println!("SFU workers have spawned");
 
-    socket::start_server().await;
-    println!("Server is running on port 9000");
-
     // leaving space for background tasks
 
-    let rpc = warp::post()
-        .and(warp::path!("api" / "rpc"))
-        .and(warp::body::bytes())
-        .map(methods::rpc::routes);
-
-    warp::serve(rpc).run(([0, 0, 0, 0], 8080)).await;
+    println!("Listening on port 9000");
+    socket::start_server().await;
 }
