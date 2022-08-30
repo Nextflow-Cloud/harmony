@@ -16,6 +16,7 @@ pub mod webrtc;
 pub enum Method {
     Identify(IdentifyMethod) = 1,
     // Heartbeat(HeartbeatMethod) = 2,
+    GetId(GetIdMethod) = 5,
     Capabilities(CapabilitiesMethod) = 10,
     Transport(TransportMethod) = 11,
     Dtls(DtlsMethod) = 12,
@@ -36,7 +37,10 @@ pub struct IdentifyMethod {
     token: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct GetIdMethod {}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CapabilitiesMethod {
     channel_id: String,
 }
@@ -81,7 +85,8 @@ pub struct ResumeMethod {
 pub enum Response {
     Identify(IdentifyResponse) = 1,
 
-    Error(ErrorResponse) = 3,
+    Error(ErrorResponse) = 4,
+    GetId(GetIdResponse) = 5,
 
     Capabilities(CapabilitiesResponse) = 10,
     Transport(TransportResponse) = 11,
@@ -102,7 +107,12 @@ pub struct ErrorResponse {
     pub(crate) error: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct GetIdResponse {
+    pub(crate) request_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct IdentifyResponse {
     success: bool,
 }

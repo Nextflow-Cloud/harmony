@@ -32,6 +32,7 @@ pub struct VoiceClient {
     pub(crate) id: String,
     pub(crate) socket: Arc<Mutex<WebSocketStream<TcpStream>>>,
     pub(crate) user_id: Option<String>,
+    pub(crate) request_ids: Arc<Mutex<Vec<String>>>,
 }
 
 impl VoiceClient {
@@ -68,10 +69,22 @@ async fn connection_loop() {
                 ],
                 10,
             );
+            let mut request_ids = Vec::new();
+            for _ in 0..20 {
+                request_ids.push(generate(
+                    random_number,
+                    &[
+                        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o',
+                        'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+                    ],
+                    10,
+                ));
+            }
             let client = VoiceClient {
                 id: id.clone(),
                 socket: socket_arc.clone(),
                 user_id: None,
+                request_ids: Arc::new(Mutex::new(request_ids.clone())),
             };
             clients_arc.lock().await.insert(id.clone(), client);
             let mut socket = socket_arc.lock().await;
@@ -81,7 +94,8 @@ async fn connection_loop() {
             let val = VoiceApiEvent {
                 data: Some(Event::Hello(HelloEvent {
                     public_key: public_key.to_bytes().to_vec(),
-                })),
+                    request_ids,
+                }),
             };
             val.serialize(&mut Serializer::new(&mut buf)).unwrap();
             socket.send(Message::Binary(buf)).await.unwrap();
@@ -94,19 +108,39 @@ async fn connection_loop() {
                             let result: Result<VoiceApiMethod, Error> =
                                 Deserialize::deserialize(&mut deserializer);
                             if let Ok(r) = result {
-                                let data = r.data.unwrap();
-                                println!("Received: {:?}", data);
-                                let dispatch: Response = match data {
-                                    Method::Identify(m) => {
-                                        voice::authentication::identify(
-                                            m,
-                                            clients_arc.clone(),
-                                            id.clone(),
-                                        )
-                                        .await
+                                println!("Received: {:?}", r.method);
+                                if let Some(request_id) = r.id {
+                                    let clients_locked = clients_arc.lock().await;
+                                    let client = clients_locked.get(&id).unwrap();
+                                    let mut request_ids = client.request_ids.lock().await;
+                                    if request_ids.contains(&request_id) {
+                                        request_ids.retain(|x| x != &request_id);
+                                    } else {
+                                        let error = Response::Error(ErrorResponse {
+                                            error: "Invalid request id".to_string(),
+                                        });
+                                        let mut value_buffer = Vec::new();
+                                        error
+                                            .serialize(&mut Serializer::new(&mut value_buffer).with_struct_map())
+                                            .unwrap();
+                                        socket.send(Message::Binary(value_buffer)).await.unwrap();
+                                        return;
                                     }
-                                    Method::Capabilities(m) => voice::webrtc::capabilities(m).await,
-                                    Method::Transport(m) => {
+                                    drop(request_ids);
+                                    drop(client);
+                                    drop(clients_locked);
+                                    let dispatch: Response = match r.method {
+                                        Method::Identify(m) => {
+                                            authentication::identify(
+                                                m,
+                                                clients_arc.clone(),
+                                                id.clone(),
+                                            )
+                                            .await
+                                        }
+                                        Method::GetId(m) => authentication::get_id(m, clients_arc.clone(), id.clone()).await,
+                                        Method::Capabilities(m) => webrtc::capabilities(m).await,
+                                        Method::Transport(m) => {
                                         voice::webrtc::transport(m, clients_arc.clone(), id.clone())
                                             .await
                                     }
@@ -124,6 +158,16 @@ async fn connection_loop() {
                                     .serialize(&mut Serializer::new(&mut value_buffer))
                                     .unwrap();
                                 socket.send(Message::Binary(value_buffer)).await.unwrap();
+                                } else {
+                                    let error = Response::Error(ErrorResponse {
+                                        error: "No request id".to_string(),
+                                    });
+                                    let mut value_buffer = Vec::new();
+                                    error
+                                        .serialize(&mut Serializer::new(&mut value_buffer).with_struct_map())
+                                        .unwrap();
+                                    socket.send(Message::Binary(value_buffer)).await.unwrap();
+                                }
                             } else {
                                 let error = Response::Error(ErrorResponse {
                                     error: "Invalid data or method not found".to_string(),

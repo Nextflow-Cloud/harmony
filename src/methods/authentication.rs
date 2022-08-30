@@ -8,8 +8,11 @@ use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
 
 use crate::methods::{ErrorResponse, IdentifyMethod, IdentifyResponse, Response};
+use crate::services::encryption::{generate, random_number};
 use crate::services::environment::JWT_SECRET;
 use crate::services::socket::VoiceClient;
+
+use super::{GetIdMethod, GetIdResponse};
 
 #[derive(Deserialize)]
 struct User {
@@ -46,4 +49,26 @@ pub async fn identify(
             error: "Invalid token".to_string(),
         }),
     }
+}
+
+pub async fn get_id(_: GetIdMethod, clients: Arc<Mutex<DashMap<String, VoiceClient>>>, id: String) -> Response {
+    let clients_locked = clients.lock().await;
+    let client = clients_locked.get(&id).unwrap();
+    let mut request_ids = client.request_ids.lock().await;
+    let mut new_request_ids = Vec::new();
+    for _ in 0..20 {
+        let id = generate(
+            random_number,
+            &[
+                'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o',
+                'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+            ],
+            10,
+        );
+        request_ids.push(id.clone());
+        new_request_ids.push(id);
+    }
+    Response::GetId(GetIdResponse {
+        request_ids: new_request_ids,
+    })
 }
