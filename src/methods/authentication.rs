@@ -7,7 +7,7 @@ use dashmap::DashMap;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
 
-use crate::methods::voice::{ErrorResponse, IdentifyMethod, IdentifyResponse, Response};
+use crate::methods::{ErrorResponse, IdentifyMethod, IdentifyResponse, Response};
 use crate::services::environment::JWT_SECRET;
 use crate::services::socket::VoiceClient;
 
