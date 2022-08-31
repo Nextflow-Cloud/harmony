@@ -16,9 +16,9 @@ use serde::{Deserialize, Serialize};
 use x25519_dalek::{EphemeralSecret, PublicKey};
 
 use crate::{
-    methods::voice::{
-        self, ErrorResponse, Event, HelloEvent, Method, Response, VoiceApiEvent, VoiceApiMethod,
-        VoiceApiResponse,
+    methods::{
+        ErrorResponse, Event, HelloEvent, Method, Response, VoiceApiEvent, VoiceApiMethod,
+        VoiceApiResponse, authentication, webrtc
     },
     services::encryption::{generate, random_number},
 };
