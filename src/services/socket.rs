@@ -47,7 +47,7 @@ impl VoiceClient {
 pub async fn start_server() {
     let server = TcpListener::bind(LISTEN_ADDRESS.to_owned()).await.unwrap();
     SERVER.set(server).expect("Failed to set server");
-    spawn(connection_loop());
+    connection_loop().await;
 }
 
 async fn connection_loop() {
