@@ -141,23 +141,23 @@ async fn connection_loop() {
                                         Method::GetId(m) => authentication::get_id(m, clients_arc.clone(), id.clone()).await,
                                         Method::Capabilities(m) => webrtc::capabilities(m).await,
                                         Method::Transport(m) => {
-                                        voice::webrtc::transport(m, clients_arc.clone(), id.clone())
-                                            .await
-                                    }
-                                    Method::Dtls(m) => voice::webrtc::dtls(m).await,
-                                    Method::Produce(m) => voice::webrtc::produce(m).await,
-                                    Method::Consume(m) => voice::webrtc::consume(m).await,
-                                    Method::Resume(m) => voice::webrtc::resume(m).await,
-                                };
-                                let mut value_buffer = Vec::new();
-                                let return_value = VoiceApiResponse {
-                                    id: None,
-                                    data: Some(dispatch),
-                                };
-                                return_value
-                                    .serialize(&mut Serializer::new(&mut value_buffer))
-                                    .unwrap();
-                                socket.send(Message::Binary(value_buffer)).await.unwrap();
+                                            webrtc::transport(m, clients_arc.clone(), id.clone())
+                                                .await
+                                        }
+                                        Method::Dtls(m) => webrtc::dtls(m).await,
+                                        Method::Produce(m) => webrtc::produce(m).await,
+                                        Method::Consume(m) => webrtc::consume(m).await,
+                                        Method::Resume(m) => webrtc::resume(m).await,
+                                    };
+                                    let mut value_buffer = Vec::new();
+                                    let return_value = VoiceApiResponse {
+                                        id: Some(request_id),
+                                        response: dispatch,
+                                    };
+                                    return_value
+                                        .serialize(&mut Serializer::new(&mut value_buffer).with_struct_map())
+                                        .unwrap();
+                                    socket.send(Message::Binary(value_buffer)).await.unwrap();
                                 } else {
                                     let error = Response::Error(ErrorResponse {
                                         error: "No request id".to_string(),
