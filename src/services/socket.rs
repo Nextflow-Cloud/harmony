@@ -97,7 +97,7 @@ async fn connection_loop() {
                     request_ids,
                 }),
             };
-            val.serialize(&mut Serializer::new(&mut buf)).unwrap();
+            val.serialize(&mut Serializer::new(&mut buf).with_struct_map()).unwrap();
             socket.send(Message::Binary(buf)).await.unwrap();
             loop {
                 while let Some(data) = socket.next().await {
@@ -178,7 +178,7 @@ async fn connection_loop() {
                                     data: Some(error),
                                 };
                                 return_value
-                                    .serialize(&mut Serializer::new(&mut value_buffer))
+                                    .serialize(&mut Serializer::new(&mut value_buffer).with_struct_map())
                                     .unwrap();
                                 socket.send(Message::Binary(value_buffer)).await.unwrap();
                             }

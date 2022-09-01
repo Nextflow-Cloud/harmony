@@ -24,7 +24,7 @@ mongodb = "2.3.0"
 jsonwebtoken = "8.1.1"
 
 serde = { version = "1.0.140", features = ["derive"] }
-rmp-serde = "0.13.7"
+rmp-serde = "1.1.0"
 
 aes-gcm = "0.9.4"
 flate2 = "1.0.24"
