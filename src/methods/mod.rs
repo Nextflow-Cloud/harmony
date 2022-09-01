@@ -11,7 +11,8 @@ use serde::{Deserialize, Serialize};
 pub mod authentication;
 pub mod webrtc;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(tag = "type", content = "data", rename_all = "SCREAMING_SNAKE_CASE")]
 #[repr(i8)]
 pub enum Method {
     Identify(IdentifyMethod) = 1,
@@ -28,10 +29,11 @@ pub enum Method {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct VoiceApiMethod {
     pub(crate) id: Option<String>,
-    pub(crate) data: Option<Method>,
+    #[serde(flatten)]
+    pub(crate) method: Method,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct IdentifyMethod {
     public_key: Vec<u8>,
     token: String,
@@ -45,20 +47,20 @@ pub struct CapabilitiesMethod {
     channel_id: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TransportMethod {
     channel_id: String,
     producer: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DtlsMethod {
     channel_id: String,
     transport_id: String,
     dtls_parameters: DtlsParameters,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ProduceMethod {
     channel_id: String,
     transport_id: String,
@@ -66,7 +68,7 @@ pub struct ProduceMethod {
     rtp_parameters: RtpParameters,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ConsumeMethod {
     channel_id: String,
     transport_id: String,
@@ -74,14 +76,15 @@ pub struct ConsumeMethod {
     rtp_capabilities: RtpCapabilities,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ResumeMethod {
     channel_id: String,
     consumer_id: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[repr(i8)]
+#[serde(tag = "type", content = "data", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Response {
     Identify(IdentifyResponse) = 1,
 
@@ -96,13 +99,14 @@ pub enum Response {
     Resume(ResumeResponse) = 15,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct VoiceApiResponse {
     pub(crate) id: Option<String>,
-    pub(crate) data: Option<Response>,
+    #[serde(flatten)]
+    pub(crate) response: Response,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ErrorResponse {
     pub(crate) error: String,
 }
@@ -117,12 +121,12 @@ pub struct IdentifyResponse {
     success: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CapabilitiesResponse {
     rtp_capabilities: RtpCapabilitiesFinalized,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TransportResponse {
     id: TransportId,
     ice_parameters: IceParameters,
@@ -131,10 +135,10 @@ pub struct TransportResponse {
     sctp_parameters: Option<SctpParameters>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DtlsResponse {}
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ProduceResponse {
     id: ProducerId,
     kind: MediaKind,
@@ -142,7 +146,7 @@ pub struct ProduceResponse {
     producer_type: ProducerType,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ConsumeResponse {
     id: ConsumerId,
     kind: MediaKind,
@@ -152,28 +156,31 @@ pub struct ConsumeResponse {
     producer_paused: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ResumeResponse {}
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[repr(i8)]
+#[serde(tag = "type", content = "data", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Event {
     Hello(HelloEvent) = 0,
 
     NewProducer(NewProducerEvent) = 16,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct VoiceApiEvent {
-    pub(crate) data: Option<Event>,
+    #[serde(flatten)]
+    pub(crate) event: Event,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct HelloEvent {
     pub(crate) public_key: Vec<u8>,
+    pub(crate) request_ids: Vec<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct NewProducerEvent {
     id: ProducerId,
     kind: MediaKind,

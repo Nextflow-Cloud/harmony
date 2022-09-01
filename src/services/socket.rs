@@ -92,7 +92,7 @@ async fn connection_loop() {
             let public_key = PublicKey::from(&secret);
             let mut buf = Vec::new();
             let val = VoiceApiEvent {
-                data: Some(Event::Hello(HelloEvent {
+                event: Event::Hello(HelloEvent {
                     public_key: public_key.to_bytes().to_vec(),
                     request_ids,
                 }),
@@ -175,7 +175,7 @@ async fn connection_loop() {
                                 let mut value_buffer = Vec::new();
                                 let return_value = VoiceApiResponse {
                                     id: None,
-                                    data: Some(error),
+                                    response: error,
                                 };
                                 return_value
                                     .serialize(&mut Serializer::new(&mut value_buffer).with_struct_map())
