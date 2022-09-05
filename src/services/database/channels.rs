@@ -7,7 +7,7 @@ pub enum Channel {
         id: String,
         initiator_id: String,
         peer_id: String,
-        scope_id: String,     // scope: "global" or id
+        scope_id: String, // scope: "global" or id
     },
     GroupChannel {
         id: String,

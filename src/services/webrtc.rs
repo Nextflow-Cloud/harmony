@@ -216,8 +216,7 @@ pub async fn get_call(channel_id: String) -> Arc<Mutex<Call>> {
         Some(c) => c.value().clone(),
         None => {
             let new_call = Call::new(channel_id.clone()).await;
-            CALLS
-                .insert(channel_id.clone(), Arc::new(Mutex::new(new_call)));
+            CALLS.insert(channel_id.clone(), Arc::new(Mutex::new(new_call)));
             CALLS.get(&channel_id).unwrap().value().clone()
         }
     }

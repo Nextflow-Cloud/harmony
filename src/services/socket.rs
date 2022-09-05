@@ -17,8 +17,8 @@ use x25519_dalek::{EphemeralSecret, PublicKey};
 
 use crate::{
     methods::{
-        ErrorResponse, Event, HelloEvent, Method, Response, VoiceApiEvent, VoiceApiMethod,
-        VoiceApiResponse, authentication, webrtc
+        authentication, webrtc, ErrorResponse, Event, HelloEvent, Method, Response, VoiceApiEvent,
+        VoiceApiMethod, VoiceApiResponse,
     },
     services::encryption::{generate, random_number},
 };
@@ -97,7 +97,8 @@ async fn connection_loop() {
                     request_ids,
                 }),
             };
-            val.serialize(&mut Serializer::new(&mut buf).with_struct_map()).unwrap();
+            val.serialize(&mut Serializer::new(&mut buf).with_struct_map())
+                .unwrap();
             socket.send(Message::Binary(buf)).await.unwrap();
             loop {
                 while let Some(data) = socket.next().await {
@@ -121,7 +122,10 @@ async fn connection_loop() {
                                         });
                                         let mut value_buffer = Vec::new();
                                         error
-                                            .serialize(&mut Serializer::new(&mut value_buffer).with_struct_map())
+                                            .serialize(
+                                                &mut Serializer::new(&mut value_buffer)
+                                                    .with_struct_map(),
+                                            )
                                             .unwrap();
                                         socket.send(Message::Binary(value_buffer)).await.unwrap();
                                         return;
@@ -138,7 +142,14 @@ async fn connection_loop() {
                                             )
                                             .await
                                         }
-                                        Method::GetId(m) => authentication::get_id(m, clients_arc.clone(), id.clone()).await,
+                                        Method::GetId(m) => {
+                                            authentication::get_id(
+                                                m,
+                                                clients_arc.clone(),
+                                                id.clone(),
+                                            )
+                                            .await
+                                        }
                                         Method::Capabilities(m) => webrtc::capabilities(m).await,
                                         Method::Transport(m) => {
                                             webrtc::transport(m, clients_arc.clone(), id.clone())
@@ -155,7 +166,10 @@ async fn connection_loop() {
                                         response: dispatch,
                                     };
                                     return_value
-                                        .serialize(&mut Serializer::new(&mut value_buffer).with_struct_map())
+                                        .serialize(
+                                            &mut Serializer::new(&mut value_buffer)
+                                                .with_struct_map(),
+                                        )
                                         .unwrap();
                                     socket.send(Message::Binary(value_buffer)).await.unwrap();
                                 } else {
@@ -164,7 +178,10 @@ async fn connection_loop() {
                                     });
                                     let mut value_buffer = Vec::new();
                                     error
-                                        .serialize(&mut Serializer::new(&mut value_buffer).with_struct_map())
+                                        .serialize(
+                                            &mut Serializer::new(&mut value_buffer)
+                                                .with_struct_map(),
+                                        )
                                         .unwrap();
                                     socket.send(Message::Binary(value_buffer)).await.unwrap();
                                 }
@@ -178,7 +195,9 @@ async fn connection_loop() {
                                     response: error,
                                 };
                                 return_value
-                                    .serialize(&mut Serializer::new(&mut value_buffer).with_struct_map())
+                                    .serialize(
+                                        &mut Serializer::new(&mut value_buffer).with_struct_map(),
+                                    )
                                     .unwrap();
                                 socket.send(Message::Binary(value_buffer)).await.unwrap();
                             }
