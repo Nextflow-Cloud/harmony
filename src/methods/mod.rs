@@ -8,8 +8,11 @@ use mediasoup::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::services::database::messages::Message;
+
 pub mod authentication;
 pub mod webrtc;
+pub mod messages;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "type", content = "data", rename_all = "SCREAMING_SNAKE_CASE")]
@@ -24,6 +27,9 @@ pub enum Method {
     Produce(ProduceMethod) = 13,
     Consume(ConsumeMethod) = 14,
     Resume(ResumeMethod) = 15,
+
+    GetChannelMessages(GetChannelMessagesMethod) = 20,
+    SendChannelMessage(SendChannelMessageMethod) = 22,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -83,6 +89,18 @@ pub struct ResumeMethod {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct GetChannelMessagesMethod {
+    channel_id: String,
+    limit: Option<u32>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SendChannelMessageMethod {
+    channel_id: String,
+    content: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[repr(i8)]
 #[serde(tag = "type", content = "data", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Response {
@@ -97,6 +115,9 @@ pub enum Response {
     Produce(ProduceResponse) = 13,
     Consume(ConsumeResponse) = 14,
     Resume(ResumeResponse) = 15,
+
+    GetChannelMessages(GetChannelMessagesResponse) = 20,
+    SendChannelMessage(SendChannelMessageResponse) = 22,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -160,12 +181,24 @@ pub struct ConsumeResponse {
 pub struct ResumeResponse {}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct GetChannelMessagesResponse {
+    messages: Vec<Message>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SendChannelMessageResponse {
+    message_id: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[repr(i8)]
 #[serde(tag = "type", content = "data", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Event {
     Hello(HelloEvent) = 0,
 
     NewProducer(NewProducerEvent) = 16,
+
+    NewChannelMessage(NewChannelMessageEvent) = 21,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -186,4 +219,9 @@ pub struct NewProducerEvent {
     kind: MediaKind,
     rtp_parameters: RtpParameters,
     producer_type: ProducerType,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct NewChannelMessageEvent {
+    message: Message,
 }

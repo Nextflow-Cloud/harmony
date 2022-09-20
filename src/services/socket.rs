@@ -159,6 +159,8 @@ async fn connection_loop() {
                                         Method::Produce(m) => webrtc::produce(m).await,
                                         Method::Consume(m) => webrtc::consume(m).await,
                                         Method::Resume(m) => webrtc::resume(m).await,
+                                        Method::GetChannelMessages(m) => messages::get_channel_messages(m).await,
+                                        Method::SendChannelMessage(m) => messages::send_channel_message(m, clients_arc.clone(), id.clone()).await,
                                     };
                                     let mut value_buffer = Vec::new();
                                     let return_value = VoiceApiResponse {
