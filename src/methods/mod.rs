@@ -33,7 +33,7 @@ pub enum Method {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct VoiceApiMethod {
+pub struct RpcApiMethod {
     pub(crate) id: Option<String>,
     #[serde(flatten)]
     pub(crate) method: Method,
@@ -121,7 +121,7 @@ pub enum Response {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct VoiceApiResponse {
+pub struct RpcApiResponse {
     pub(crate) id: Option<String>,
     #[serde(flatten)]
     pub(crate) response: Response,
@@ -202,7 +202,7 @@ pub enum Event {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct VoiceApiEvent {
+pub struct RpcApiEvent {
     #[serde(flatten)]
     pub(crate) event: Event,
 }

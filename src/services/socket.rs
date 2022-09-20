@@ -17,8 +17,8 @@ use x25519_dalek::{EphemeralSecret, PublicKey};
 
 use crate::{
     methods::{
-        authentication, webrtc, ErrorResponse, Event, HelloEvent, Method, Response, VoiceApiEvent,
-        VoiceApiMethod, VoiceApiResponse,
+        authentication, messages, webrtc, ErrorResponse, Event, HelloEvent, Method, Response, RpcApiEvent,
+        RpcApiMethod, RpcApiResponse,
     },
     services::encryption::{generate, random_number},
 };
@@ -91,7 +91,7 @@ async fn connection_loop() {
             let secret = EphemeralSecret::new(OsRng);
             let public_key = PublicKey::from(&secret);
             let mut buf = Vec::new();
-            let val = VoiceApiEvent {
+            let val = RpcApiEvent {
                 event: Event::Hello(HelloEvent {
                     public_key: public_key.to_bytes().to_vec(),
                     request_ids,
@@ -106,7 +106,7 @@ async fn connection_loop() {
                         Message::Binary(bin) => {
                             println!("Received binary data");
                             let mut deserializer = Deserializer::new(bin.as_slice());
-                            let result: Result<VoiceApiMethod, Error> =
+                            let result: Result<RpcApiMethod, Error> =
                                 Deserialize::deserialize(&mut deserializer);
                             if let Ok(r) = result {
                                 println!("Received: {:?}", r.method);
@@ -163,7 +163,7 @@ async fn connection_loop() {
                                         Method::SendChannelMessage(m) => messages::send_channel_message(m, clients_arc.clone(), id.clone()).await,
                                     };
                                     let mut value_buffer = Vec::new();
-                                    let return_value = VoiceApiResponse {
+                                    let return_value = RpcApiResponse {
                                         id: Some(request_id),
                                         response: dispatch,
                                     };
@@ -192,7 +192,7 @@ async fn connection_loop() {
                                     error: "Invalid data or method not found".to_string(),
                                 });
                                 let mut value_buffer = Vec::new();
-                                let return_value = VoiceApiResponse {
+                                let return_value = RpcApiResponse {
                                     id: None,
                                     response: error,
                                 };
