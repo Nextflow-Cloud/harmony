@@ -17,6 +17,7 @@ chrono = "0.4.22"
 rand = "0.8.5"
 rand_core = "0.5.1"
 num_cpus = "1.13.1"
+ulid = "1.0.0"
 
 async-tungstenite = "*"
 mediasoup = "0.10.0"

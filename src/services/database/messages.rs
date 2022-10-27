@@ -1,8 +1,7 @@
 use async_std::stream::StreamExt;
 use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
-
-use crate::services::encryption::generate_id;
+use ulid::Ulid;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Message {
@@ -42,7 +41,7 @@ pub async fn get_messages(channel_id: String) -> Vec<Message> {
 
 pub async fn create_message(channel_id: String, author_id: String, content: String) -> Message {
     let message = Message {
-        id: generate_id(),
+        id: Ulid::new().to_string(),
         content,
         author_id,
         created_at: chrono::Utc::now().timestamp_millis() as u64,

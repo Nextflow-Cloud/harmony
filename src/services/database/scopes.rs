@@ -1,5 +1,6 @@
 use mongodb::{bson::doc, error::Error};
 use serde::{Deserialize, Serialize};
+use ulid::Ulid;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Scope {
@@ -17,7 +18,7 @@ pub async fn create_scope(name: String) -> Result<(), Error> {
     scopes
         .insert_one(
             Scope {
-                id: crate::services::encryption::generate_id(),
+                id: Ulid::new().to_string(),
                 name,
                 disabled: false,
                 nexuses: Vec::new(),
