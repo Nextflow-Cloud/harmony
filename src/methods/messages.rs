@@ -12,7 +12,7 @@ use crate::services::socket::VoiceClient;
 use super::{GetMessagesMethod, GetMessagesResponse, SendMessageMethod, SendMessageResponse, Response, ErrorResponse, NewMessageEvent, Event, RpcApiEvent};
 
 pub async fn get_messages(m: GetMessagesMethod) -> Response {
-    let messages = crate::services::database::messages::get_messages(m.channel_id).await;
+    let messages = crate::services::database::messages::get_messages(m.channel_id, m.limit, m.oldest, m.before, m.after).await;
     Response::GetMessages(GetMessagesResponse { messages })
 }
 

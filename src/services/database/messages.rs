@@ -11,22 +11,29 @@ pub struct Message {
     pub(crate) created_at: u64,
     pub(crate) edited: bool,
     pub(crate) edited_at: Option<u64>,
+    pub(crate) channel_id: String,
 }
 
-pub async fn get_messages(channel_id: String) -> Vec<Message> {
+pub async fn get_messages(channel_id: String, limit: Option<i64>, oldest: Option<bool>, before: Option<String>, after: Option<String>) -> Vec<Message> {
     let database = super::get_database();
+    let limit = limit.unwrap_or(50);
+    let mut query = doc! { "channel_id": channel_id };
+    if let Some(before) = before {
+        query.insert("id", doc! { "$lt": before });
+    }
+    if let Some(after) = after {
+        query.insert("id", doc! { "$gt": after });
+    }
     let options = mongodb::options::FindOptions::builder()
         .sort(doc! {
-            "created_at": -1,
+            "id": if oldest.unwrap_or(false) { -1 } else { 1 }
         })
-        .limit(100)
+        .limit(limit)
         .build();
     let cursor = database
-        .collection::<Message>(&format!("messages_{}", channel_id))
+        .collection::<Message>("messages")
         .find(
-            doc! {
-                "id": channel_id,
-            },
+            query,
             options,
         )
         .await;
@@ -47,10 +54,11 @@ pub async fn create_message(channel_id: String, author_id: String, content: Stri
         created_at: chrono::Utc::now().timestamp_millis() as u64,
         edited: false,
         edited_at: None,
+        channel_id,
     };
     let database = super::get_database();
     database
-        .collection::<Message>(&format!("messages_{}", channel_id))
+        .collection::<Message>("messages")
         .insert_one(message.clone(), None)
         .await
         .unwrap();
