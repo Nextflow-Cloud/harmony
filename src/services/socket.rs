@@ -2,13 +2,12 @@ use std::sync::Arc;
 
 use async_std::{
     net::{TcpListener, TcpStream},
-    prelude::StreamExt,
     sync::Mutex,
     task::spawn,
 };
 use async_tungstenite::{accept_async, tungstenite::Message, WebSocketStream};
 use dashmap::DashMap;
-use futures_util::SinkExt;
+use futures_util::{SinkExt, StreamExt, stream::SplitSink};
 use once_cell::sync::OnceCell;
 use rand_core::OsRng;
 use rmp_serde::{decode::Error, Deserializer, Serializer};
@@ -30,7 +29,7 @@ static SERVER: OnceCell<TcpListener> = OnceCell::new();
 #[derive(Clone)]
 pub struct VoiceClient {
     pub(crate) id: String,
-    pub(crate) socket: Arc<Mutex<WebSocketStream<TcpStream>>>,
+    pub(crate) socket: Arc<Mutex<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     pub(crate) user_id: Option<String>,
     pub(crate) request_ids: Arc<Mutex<Vec<String>>>,
 }
@@ -58,9 +57,9 @@ async fn connection_loop() {
         spawn(async move {
             let connection = stream.unwrap();
             println!("Socket connected: {}", connection.peer_addr().unwrap());
-            let socket_arc = Arc::new(Mutex::new(
-                accept_async(connection).await.expect("Failed to accept"),
-            ));
+            let ws_stream = accept_async(connection).await.expect("Failed to accept");
+            let (write, mut read) = ws_stream.split();
+            let socket_arc = Arc::new(Mutex::new(write));
             let id = generate(
                 random_number,
                 &[
@@ -87,7 +86,6 @@ async fn connection_loop() {
                 request_ids: Arc::new(Mutex::new(request_ids.clone())),
             };
             clients_arc.lock().await.insert(id.clone(), client);
-            let mut socket = socket_arc.lock().await;
             let secret = EphemeralSecret::new(OsRng);
             let public_key = PublicKey::from(&secret);
             let mut buf = Vec::new();
@@ -99,9 +97,11 @@ async fn connection_loop() {
             };
             val.serialize(&mut Serializer::new(&mut buf).with_struct_map())
                 .unwrap();
-            socket.send(Message::Binary(buf)).await.unwrap();
-            loop {
-                while let Some(data) = socket.next().await {
+            // println!("test: {:?}", buf);
+            let mut write = socket_arc.lock().await;
+            write.send(Message::Binary(buf)).await.unwrap();
+            drop(write);
+            while let Some(data) = read.next().await {
                     match data.unwrap() {
                         Message::Binary(bin) => {
                             println!("Received binary data");
@@ -127,7 +127,9 @@ async fn connection_loop() {
                                                     .with_struct_map(),
                                             )
                                             .unwrap();
-                                        socket.send(Message::Binary(value_buffer)).await.unwrap();
+                                    let mut write = socket_arc.lock().await;
+                                    write.send(Message::Binary(value_buffer)).await.unwrap();
+                                    drop(write);
                                         return;
                                     }
                                     drop(request_ids);
@@ -177,7 +179,9 @@ async fn connection_loop() {
                                                 .with_struct_map(),
                                         )
                                         .unwrap();
-                                    socket.send(Message::Binary(value_buffer)).await.unwrap();
+                                let mut write = socket_arc.lock().await;
+                                write.send(Message::Binary(value_buffer)).await.unwrap();
+                                drop(write);
                                 } else {
                                     let error = Response::Error(ErrorResponse {
                                         error: "No request id".to_string(),
@@ -189,7 +193,9 @@ async fn connection_loop() {
                                                 .with_struct_map(),
                                         )
                                         .unwrap();
-                                    socket.send(Message::Binary(value_buffer)).await.unwrap();
+                                let mut write = socket_arc.lock().await;
+                                write.send(Message::Binary(value_buffer)).await.unwrap();
+                                drop(write);
                                 }
                             } else {
                                 let error = Response::Error(ErrorResponse {
@@ -205,28 +211,36 @@ async fn connection_loop() {
                                         &mut Serializer::new(&mut value_buffer).with_struct_map(),
                                     )
                                     .unwrap();
-                                socket.send(Message::Binary(value_buffer)).await.unwrap();
+                            let mut write = socket_arc.lock().await;
+                            write.send(Message::Binary(value_buffer)).await.unwrap();
+                            drop(write);
                             }
                         }
                         Message::Ping(bin) => {
                             println!("Received ping");
-                            socket.send(Message::Pong(bin)).await.unwrap();
+                        let mut write = socket_arc.lock().await;
+                        write.send(Message::Pong(bin)).await.unwrap();
+                        drop(write);
                         }
                         Message::Close(_) => {
                             println!("Received close");
-                            socket.close(None).await.unwrap();
+                        let mut write = socket_arc.lock().await;
+                        write.close().await.unwrap();
                             clients_arc.lock().await.remove(&id.clone());
+                        drop(write);
                             break;
                         }
                         _ => {
                             println!("Received unknown message");
-                            socket.close(None).await.unwrap();
+                        let mut write = socket_arc.lock().await;
+                        write.close().await.unwrap();
                             clients_arc.lock().await.remove(&id.clone());
+                        drop(write);
                             break;
                         }
                     }
                 }
-            }
+            
         });
     }
 }
