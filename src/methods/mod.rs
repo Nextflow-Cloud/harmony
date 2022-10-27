@@ -27,8 +27,8 @@ pub enum Method {
     Consume(ConsumeMethod) = 14,
     Resume(ResumeMethod) = 15,
 
-    GetChannelMessages(GetChannelMessagesMethod) = 20,
-    SendChannelMessage(SendChannelMessageMethod) = 22,
+    GetMessages(GetMessagesMethod) = 20,
+    SendMessage(SendMessageMethod) = 22,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -88,13 +88,13 @@ pub struct ResumeMethod {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct GetChannelMessagesMethod {
+pub struct GetMessagesMethod {
     channel_id: String,
     limit: Option<u32>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct SendChannelMessageMethod {
+pub struct SendMessageMethod {
     channel_id: String,
     content: String,
 }
@@ -115,8 +115,8 @@ pub enum Response {
     Consume(ConsumeResponse) = 14,
     Resume(ResumeResponse) = 15,
 
-    GetChannelMessages(GetChannelMessagesResponse) = 20,
-    SendChannelMessage(SendChannelMessageResponse) = 22,
+    GetMessages(GetMessagesResponse) = 20,
+    SendMessage(SendMessageResponse) = 22,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -201,12 +201,12 @@ pub struct ConsumeResponse {
 pub struct ResumeResponse {}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct GetChannelMessagesResponse {
+pub struct GetMessagesResponse {
     messages: Vec<Message>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct SendChannelMessageResponse {
+pub struct SendMessageResponse {
     message_id: String,
 }
 
@@ -218,7 +218,7 @@ pub enum Event {
 
     NewProducer(NewProducerEvent) = 16,
 
-    NewChannelMessage(NewChannelMessageEvent) = 21,
+    NewMessage(NewMessageEvent) = 21,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -242,6 +242,8 @@ pub struct NewProducerEvent {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct NewChannelMessageEvent {
+pub struct NewMessageEvent {
     message: Message,
+    channel_id: String,
+
 }

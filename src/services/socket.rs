@@ -156,11 +156,15 @@ async fn connection_loop() {
                                                 .await
                                         }
                                         Method::Dtls(m) => webrtc::dtls(m).await,
-                                        Method::Produce(m) => webrtc::produce(m).await,
-                                        Method::Consume(m) => webrtc::consume(m).await,
+                                    Method::Produce(m) => webrtc::produce(m,
+                                        clients_arc.clone(),
+                                        id.clone(),).await,
+                                    Method::Consume(m) => webrtc::consume(m,
+                                        clients_arc.clone(),
+                                        id.clone(),).await,
                                         Method::Resume(m) => webrtc::resume(m).await,
-                                        Method::GetChannelMessages(m) => messages::get_channel_messages(m).await,
-                                        Method::SendChannelMessage(m) => messages::send_channel_message(m, clients_arc.clone(), id.clone()).await,
+                                    Method::GetMessages(m) => messages::get_messages(m).await,
+                                    Method::SendMessage(m) => messages::send_message(m, clients_arc.clone(), id.clone()).await,
                                     };
                                     let mut value_buffer = Vec::new();
                                     let return_value = RpcApiResponse {
