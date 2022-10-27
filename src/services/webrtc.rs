@@ -1,3 +1,4 @@
+use std::num::{NonZeroU8, NonZeroU32};
 use std::sync::atomic::{AtomicUsize, Ordering::Relaxed};
 use std::sync::Arc;
 
@@ -10,14 +11,14 @@ use mediasoup::data_structures::{DtlsParameters, IceCandidate, IceParameters, Li
 use mediasoup::producer::{Producer, ProducerId, ProducerOptions, ProducerType};
 use mediasoup::router::{Router, RouterOptions};
 use mediasoup::rtp_parameters::{
-    MediaKind, RtpCapabilities, RtpCapabilitiesFinalized, RtpParameters,
+    MediaKind, RtpCapabilities, RtpCapabilitiesFinalized, RtpParameters, RtpCodecCapability, MimeTypeVideo, MimeTypeAudio,
 };
 use mediasoup::sctp_parameters::SctpParameters;
 use mediasoup::transport::{ConsumeError, ProduceError, Transport, TransportId};
 use mediasoup::webrtc_transport::{
     TransportListenIps, WebRtcTransport, WebRtcTransportOptions, WebRtcTransportRemoteParameters,
 };
-use mediasoup::worker::{RequestError, Worker, WorkerSettings};
+use mediasoup::worker::{RequestError, Worker, WorkerSettings, WorkerLogTag, WorkerLogLevel};
 use mediasoup::worker_manager::WorkerManager;
 
 use super::socket::VoiceClient;
@@ -31,6 +32,8 @@ lazy_static! {
 pub struct CallMember {
     client: VoiceClient,
     transports: Arc<Mutex<Vec<String>>>,
+    producers: Arc<Mutex<Vec<(String, MediaKind, RtpParameters)>>>,
+    consumers: Arc<Mutex<Vec<String>>>,
 }
 
 pub struct Call {
@@ -39,14 +42,42 @@ pub struct Call {
     transports: DashMap<String, WebRtcTransport>,
     producers: DashMap<String, Producer>,
     consumers: DashMap<String, Consumer>,
-    members: Vec<CallMember>,
+    members: DashMap<String, CallMember>,
 }
 
 impl Call {
     pub async fn new(id: String) -> Self {
         let worker = get_worker().await;
+        let router_options = RouterOptions::new(vec![
+            RtpCodecCapability::Audio {
+                mime_type: MimeTypeAudio::Opus,
+                clock_rate: NonZeroU32::new(48000).unwrap(),
+                channels: NonZeroU8::new(2).unwrap(),
+                parameters: Default::default(),
+                rtcp_feedback: vec![],
+                preferred_payload_type: None,
+            }, RtpCodecCapability::Video {
+                mime_type: MimeTypeVideo::Vp8,
+                clock_rate: NonZeroU32::new(90000).unwrap(),
+                parameters: Default::default(),
+                rtcp_feedback: vec![],
+                preferred_payload_type: None,
+            }, RtpCodecCapability::Video {
+                mime_type: MimeTypeVideo::Vp9,
+                clock_rate: NonZeroU32::new(90000).unwrap(),
+                parameters: Default::default(),
+                rtcp_feedback: vec![],
+                preferred_payload_type: None,
+            }, RtpCodecCapability::Video {
+                mime_type: MimeTypeVideo::H264,
+                clock_rate: NonZeroU32::new(90000).unwrap(),
+                parameters: Default::default(),
+                rtcp_feedback: vec![],
+                preferred_payload_type: None,
+            }
+        ]);
         let router = worker
-            .create_router(RouterOptions::default())
+            .create_router(router_options)
             .await
             .expect("Failed to create router");
         Call {
@@ -55,7 +86,7 @@ impl Call {
             transports: DashMap::new(),
             producers: DashMap::new(),
             consumers: DashMap::new(),
-            members: Vec::new(),
+            members: DashMap::new(),
         }
     }
     pub fn get_rtp_capabilities(&self) -> RtpCapabilitiesFinalized {
@@ -78,10 +109,12 @@ impl Call {
             .iter()
             .any(|item| item.client.get_user_id() == user.get_user_id())
         {
-            self.members.push(CallMember {
+            self.members.insert(user.get_user_id(), CallMember {
                 client: user.clone(),
                 transports: Arc::new(Mutex::new(Vec::new())),
-            })
+                producers: Arc::new(Mutex::new(Vec::new())),
+                consumers: Arc::new(Mutex::new(Vec::new())),
+            });
         }
         let listen_ips = TransportListenIps::new(ListenIp {
             ip: V4(Ipv4Addr::new(0, 0, 0, 0)),
@@ -98,10 +131,7 @@ impl Call {
                 let ice_candidates = t.ice_candidates().clone();
                 let dtls_parameters = t.dtls_parameters();
                 let sctp_parameters = t.sctp_parameters();
-                let member = (self.members)
-                    .iter()
-                    .find(|&item| item.client.get_user_id() == user.get_user_id())
-                    .unwrap();
+                let member = self.members.get(&user.get_user_id()).unwrap();
                 member.transports.lock().await.push(t.id().to_string());
                 self.transports.insert(t.id().to_string(), t);
                 Ok((
@@ -127,6 +157,7 @@ impl Call {
         id: String,
         kind: MediaKind,
         rtp_parameters: RtpParameters,
+        user: VoiceClient,
     ) -> Result<(ProducerId, MediaKind, RtpParameters, ProducerType), ProduceError> {
         let transport = self.transports.get(&id).unwrap();
         let producer_options = ProducerOptions::new(kind, rtp_parameters);
@@ -137,6 +168,8 @@ impl Call {
                 let kind = p.kind();
                 let rtp_parameters = p.rtp_parameters().clone();
                 let producer_type = p.r#type();
+                let member = self.members.get(&user.get_user_id()).unwrap();
+                member.producers.lock().await.push((p.id().to_string(), p.kind(), p.rtp_parameters().clone()));
                 self.producers.insert(p.id().to_string(), p);
                 Ok((id, kind, rtp_parameters, producer_type))
             }
@@ -148,6 +181,7 @@ impl Call {
         id: String,
         producer_id: ProducerId,
         rtp_capabilities: RtpCapabilities,
+        user: VoiceClient,
     ) -> Result<
         (
             ConsumerId,
@@ -171,6 +205,8 @@ impl Call {
                 let consumer_type = c.r#type();
                 let producer_id = c.producer_id();
                 let producer_paused = c.producer_paused();
+                let member = self.members.get(&user.get_user_id()).unwrap();
+                member.consumers.lock().await.push(c.id().to_string());
                 self.consumers.insert(c.id().to_string(), c);
                 Ok((
                     id,
@@ -188,14 +224,37 @@ impl Call {
         let consumer = self.consumers.get(&consumer_id).unwrap();
         consumer.resume().await.unwrap();
     }
+    pub fn get_members(&self) -> Vec<(VoiceClient, Arc<Mutex<Vec<(String, MediaKind, RtpParameters)>>>)> {
+        self.members.iter().map(move |item| {
+            (item.client.clone(), item.producers.clone())
+        }).collect()
+    }
 }
 
 pub async fn create_workers() {
     let worker_manager = WorkerManager::new();
     let mut workers = WORKERS.lock().await;
     for _ in 0..num_cpus::get() {
+        let mut worker_settings = WorkerSettings::default();
+        worker_settings.rtc_ports_range = 10000..=11000;
+        worker_settings.log_level = WorkerLogLevel::Debug;
+        worker_settings.log_tags= vec![
+            WorkerLogTag::Info,
+            WorkerLogTag::Ice,
+            WorkerLogTag::Dtls,
+            WorkerLogTag::Rtp,
+            WorkerLogTag::Srtp,
+            WorkerLogTag::Rtcp,
+            WorkerLogTag::Rtx,
+            WorkerLogTag::Bwe,
+            WorkerLogTag::Score,
+            WorkerLogTag::Simulcast,
+            WorkerLogTag::Svc,
+            WorkerLogTag::Sctp,
+            WorkerLogTag::Message,
+        ];
         let worker = worker_manager
-            .create_worker(WorkerSettings::default())
+            .create_worker(worker_settings)
             .await
             .expect("Failed to create worker");
         workers.push(Arc::new(worker));

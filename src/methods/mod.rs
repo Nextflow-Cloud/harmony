@@ -1,10 +1,9 @@
 use mediasoup::{
-    consumer::{ConsumerId, ConsumerType},
+    consumer::ConsumerType,
     prelude::{DtlsParameters, IceCandidate, IceParameters},
     producer::{ProducerId, ProducerType},
     rtp_parameters::{MediaKind, RtpCapabilities, RtpCapabilitiesFinalized, RtpParameters},
     sctp_parameters::SctpParameters,
-    transport::TransportId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -143,13 +142,34 @@ pub struct IdentifyResponse {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Producer {
+    pub(crate) id: String,
+    pub(crate) kind: MediaKind,
+    pub(crate) rtp_parameters: RtpParameters,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CallMember {
+    // pub(crate) id: String,
+    // pub(crate) name: String,
+    // pub(crate) avatar: Option<String>,
+    // pub(crate) muted: bool,
+    // pub(crate) deafened: bool,
+    // pub(crate) joined_at: String,
+    user_id: String,
+    unique_id: String,
+    producers: Vec<Producer>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CapabilitiesResponse {
     rtp_capabilities: RtpCapabilitiesFinalized,
+    call_members: Vec<CallMember>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TransportResponse {
-    id: TransportId,
+    id: String,
     ice_parameters: IceParameters,
     ice_candidates: Vec<IceCandidate>,
     dtls_parameters: DtlsParameters,
@@ -161,7 +181,7 @@ pub struct DtlsResponse {}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ProduceResponse {
-    id: ProducerId,
+    id: String,
     kind: MediaKind,
     rtp_parameters: RtpParameters,
     producer_type: ProducerType,
@@ -169,11 +189,11 @@ pub struct ProduceResponse {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ConsumeResponse {
-    id: ConsumerId,
+    id: String,
     kind: MediaKind,
     rtp_parameters: RtpParameters,
     consumer_type: ConsumerType,
-    producer_id: ProducerId,
+    producer_id: String,
     producer_paused: bool,
 }
 
