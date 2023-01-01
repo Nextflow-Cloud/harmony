@@ -9,26 +9,27 @@ pub mod services;
 
 use services::database;
 use services::socket;
-use services::webrtc;
+// use services::webrtc;
 
-// use std::io::Write;
+use log::info;
 
-// use log::info;
+use crate::services::environment::LISTEN_ADDRESS;
 
 #[async_std::main]
 async fn main() {
-    // TODO: logger, environment
-    // TODO: negotiate encryption
+    // TODO: environment, negotiate encryption
+
+    env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
 
     database::connect().await;
-    println!("Database is connected");
+    info!("Connected to database");
+
     // run DB migrations as necessary
 
-    webrtc::create_workers().await;
-    println!("SFU workers have spawned");
+    // webrtc::create_workers().await;
+    // println!("SFU workers have spawned");
 
-    // leaving space for background tasks
-
-    println!("Listening on port 9000");
+    let listen_address = LISTEN_ADDRESS.to_owned();
+    info!("Starting server at {listen_address}");
     socket::start_server().await;
 }
