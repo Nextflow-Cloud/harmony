@@ -6,6 +6,7 @@ pub mod spaces;
 pub mod invites;
 pub mod roles;
 pub mod members;
+pub mod events;
 
 use crate::services::environment::{MONGODB_DATABASE, MONGODB_URI};
 
