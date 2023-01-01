@@ -2,6 +2,7 @@ pub mod channels;
 pub mod scopes;
 pub mod users;
 pub mod messages;
+pub mod spaces;
 
 use crate::services::environment::{MONGODB_DATABASE, MONGODB_URI};
 
