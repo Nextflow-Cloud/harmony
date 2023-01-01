@@ -31,11 +31,7 @@ pub struct IdentifyMethod {
 // (e.g. SSO system)
 #[async_trait]
 impl Respond for IdentifyMethod {
-    async fn respond(
-        &self,
-        clients: DashMap<String, RpcClient>,
-        id: String,
-    ) -> Response {
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
         println!("Public key: {:?}", self.public_key);
         println!("Token: {:?}", self.token);
         let mut validation = Validation::new(Algorithm::HS256);
@@ -71,11 +67,7 @@ pub struct HeartbeatMethod {}
 
 #[async_trait]
 impl Respond for HeartbeatMethod {
-    async fn respond(
-        &self,
-        clients: DashMap<String, RpcClient>,
-        id: String,
-    ) -> Response {
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
         let client = clients.get(&id).unwrap();
         let tx = client.heartbeat_tx.lock().await;
         tx.send(()).unwrap();
@@ -93,11 +85,7 @@ pub struct GetIdMethod {}
 
 #[async_trait]
 impl Respond for GetIdMethod {
-    async fn respond(
-        &self,
-        clients: DashMap<String, RpcClient>,
-        id: String,
-    ) -> Response {
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
         let client = clients.get(&id).unwrap();
         let mut request_ids = client.request_ids.lock().await;
         let mut new_request_ids = Vec::new();

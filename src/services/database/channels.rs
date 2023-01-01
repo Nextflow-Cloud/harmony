@@ -2,7 +2,10 @@ use futures_util::TryStreamExt;
 use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
 
-use crate::{errors::{Result, Error}, services::permissions::PermissionSet};
+use crate::{
+    errors::{Error, Result},
+    services::permissions::PermissionSet,
+};
 
 use super::spaces::in_space;
 
@@ -89,7 +92,11 @@ pub async fn get_channels(space_id: String) -> Result<Vec<Channel>> {
 pub async fn in_channel(user_id: String, channel_id: String) -> Result<bool> {
     let channel = get_channel(channel_id).await?;
     match channel {
-        Channel::PrivateChannel { initiator_id, target_id, .. } => {
+        Channel::PrivateChannel {
+            initiator_id,
+            target_id,
+            ..
+        } => {
             if initiator_id == user_id || target_id == user_id {
                 Ok(true)
             } else {

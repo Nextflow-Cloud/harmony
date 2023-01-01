@@ -2,9 +2,19 @@ use async_trait::async_trait;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 
-use crate::{services::{database::{roles::{Role, create_role, Color, update_role, get_role, delete_role}, members::get_member}, socket::RpcClient, permissions::{can_modify_role, Permission}}, errors::Error};
+use crate::{
+    errors::Error,
+    services::{
+        database::{
+            members::get_member,
+            roles::{create_role, delete_role, get_role, update_role, Color, Role},
+        },
+        permissions::{can_modify_role, Permission},
+        socket::RpcClient,
+    },
+};
 
-use super::{Respond, Response, ErrorResponse};
+use super::{ErrorResponse, Respond, Response};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -18,10 +28,16 @@ pub struct CreateRoleMethod {
 #[async_trait]
 impl Respond for CreateRoleMethod {
     async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
-        let role = create_role(self.space_id.clone(), self.name.clone(), self.permissions, self.color.clone()).await;
+        let role = create_role(
+            self.space_id.clone(),
+            self.name.clone(),
+            self.permissions,
+            self.color.clone(),
+        )
+        .await;
         match role {
             Ok(role) => Response::CreateRole(CreateRoleResponse { role }),
-            Err(error) => Response::Error(ErrorResponse { error })
+            Err(error) => Response::Error(ErrorResponse { error }),
         }
     }
 }
@@ -50,37 +66,43 @@ impl Respond for EditRoleMethod {
         let role = get_role(self.id.clone()).await;
         let role = match role {
             Ok(role) => role,
-            Err(error) => return Response::Error(ErrorResponse { error })
+            Err(error) => return Response::Error(ErrorResponse { error }),
         };
         if role.space_id != self.space_id {
             return Response::Error(ErrorResponse {
-                error: Error::NotFound
+                error: Error::NotFound,
             });
         }
         if let Some(scope_id) = &self.scope_id {
             if role.scope_id != scope_id.clone() {
                 return Response::Error(ErrorResponse {
-                    error: Error::NotFound
+                    error: Error::NotFound,
                 });
             }
         }
         let member = get_member(id, self.space_id.clone()).await;
         let member = match member {
             Ok(member) => member,
-            Err(error) => return Response::Error(ErrorResponse { error })
+            Err(error) => return Response::Error(ErrorResponse { error }),
         };
         let can_modify = can_modify_role(member, role).await;
         if !can_modify {
             return Response::Error(ErrorResponse {
                 error: Error::MissingPermission {
-                    permission: Permission::ManageRoles
-                }
+                    permission: Permission::ManageRoles,
+                },
             });
         }
-        let role = update_role(self.id.clone(), self.name.clone(), self.permissions, self.color.clone()).await;
+        let role = update_role(
+            self.id.clone(),
+            self.name.clone(),
+            self.permissions,
+            self.color.clone(),
+        )
+        .await;
         match role {
             Ok(role) => Response::EditRole(EditRoleResponse { role }),
-            Err(error) => Response::Error(ErrorResponse { error })
+            Err(error) => Response::Error(ErrorResponse { error }),
         }
     }
 }
@@ -103,8 +125,10 @@ impl Respond for DeleteRoleMethod {
         let client = clients.get(&id).unwrap();
         let role = delete_role(self.id.clone()).await;
         match role {
-            Ok(_) => Response::DeleteRole(DeleteRoleResponse { id: self.id.clone() }),
-            Err(error) => Response::Error(ErrorResponse { error })
+            Ok(_) => Response::DeleteRole(DeleteRoleResponse {
+                id: self.id.clone(),
+            }),
+            Err(error) => Response::Error(ErrorResponse { error }),
         }
     }
 }

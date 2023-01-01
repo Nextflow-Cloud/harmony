@@ -15,7 +15,13 @@ pub struct Message {
     pub(crate) channel_id: String,
 }
 
-pub async fn get_messages(channel_id: String, limit: Option<i64>, latest: Option<bool>, before: Option<String>, after: Option<String>) -> Vec<Message> {
+pub async fn get_messages(
+    channel_id: String,
+    limit: Option<i64>,
+    latest: Option<bool>,
+    before: Option<String>,
+    after: Option<String>,
+) -> Vec<Message> {
     let database = super::get_database();
     let limit = limit.unwrap_or(50);
     let mut query = doc! { "channelId": channel_id };
@@ -33,10 +39,7 @@ pub async fn get_messages(channel_id: String, limit: Option<i64>, latest: Option
         .build();
     let cursor = database
         .collection::<Message>("messages")
-        .find(
-            query,
-            options,
-        )
+        .find(query, options)
         .await;
     let mut messages = Vec::new();
     if let Ok(mut cursor) = cursor {
@@ -88,10 +91,7 @@ pub async fn delete_message(message_id: String) -> Option<Message> {
     let database = super::get_database();
     let message = database
         .collection::<Message>("messages")
-        .find_one_and_delete(
-            doc! { "id": message_id },
-            None,
-        )
+        .find_one_and_delete(doc! { "id": message_id }, None)
         .await
         .unwrap();
     message

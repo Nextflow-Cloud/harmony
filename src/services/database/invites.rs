@@ -1,10 +1,10 @@
 use futures_util::StreamExt;
 use mongodb::bson::doc;
-use rand::{distributions::{Alphanumeric, DistString}};
+use rand::distributions::{Alphanumeric, DistString};
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-use crate::errors::{Result, Error};
+use crate::errors::{Error, Result};
 
 use super::spaces::Space;
 
@@ -53,10 +53,7 @@ pub async fn create_invite(
     let database = super::get_database();
     database
         .collection::<Invite>("invites")
-        .insert_one(
-            invite.clone(),
-            None,
-        )
+        .insert_one(invite.clone(), None)
         .await?;
     Ok(invite)
 }
@@ -78,9 +75,8 @@ pub async fn get_invite(code: String) -> Result<Invite> {
     }
 }
 
-
 // pub async fn update_invite(code: String) -> Option<Invite> {
-    
+
 // }
 
 pub async fn delete_invite(id: String) -> Result<bool> {
@@ -153,10 +149,7 @@ pub async fn get_invites(channel_id: String, space_id: Option<String>) -> Result
     }
     let invites: std::result::Result<Vec<Invite>, _> = database
         .collection::<Invite>("invites")
-        .find(
-            query,
-            None,
-        )
+        .find(query, None)
         .await?
         .collect::<Vec<_>>()
         .await

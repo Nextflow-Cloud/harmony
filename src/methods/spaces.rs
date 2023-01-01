@@ -2,9 +2,15 @@ use async_trait::async_trait;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 
-use crate::{services::{socket::RpcClient, database::spaces::{Space, delete_space, update_space}}, errors::Error};
+use crate::{
+    errors::Error,
+    services::{
+        database::spaces::{delete_space, update_space, Space},
+        socket::RpcClient,
+    },
+};
 
-use super::{ErrorResponse, Response, Respond};
+use super::{ErrorResponse, Respond, Response};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -19,7 +25,11 @@ impl Respond for GetSpaceMethod {
         let space = crate::services::database::spaces::get_space(self.space_id.clone()).await;
         match space {
             Ok(space) => {
-                let user_in_space = crate::services::database::spaces::in_space(client.get_user_id(), self.space_id.clone()).await;
+                let user_in_space = crate::services::database::spaces::in_space(
+                    client.get_user_id(),
+                    self.space_id.clone(),
+                )
+                .await;
                 match user_in_space {
                     Ok(user_in_space) => {
                         if !user_in_space {
@@ -28,11 +38,11 @@ impl Respond for GetSpaceMethod {
                             });
                         }
                         Response::GetSpace(GetSpaceResponse { space })
-                    },
-                    Err(error) => Response::Error(ErrorResponse { error })
+                    }
+                    Err(error) => Response::Error(ErrorResponse { error }),
                 }
-            },
-            Err(error) => Response::Error(ErrorResponse { error })
+            }
+            Err(error) => Response::Error(ErrorResponse { error }),
         }
     }
 }
@@ -49,7 +59,7 @@ pub struct CreateSpaceMethod {
     // space: Space,
     name: String,
     description: Option<String>,
-    scope: Option<String>
+    scope: Option<String>,
 }
 
 #[async_trait]
@@ -67,12 +77,16 @@ impl Respond for CreateSpaceMethod {
             });
         }
         let client = clients.get(&id).unwrap();
-        let space = crate::services::database::spaces::create_space(self.name.clone(), self.description.clone(), client.get_user_id(), self.scope.clone()).await;
+        let space = crate::services::database::spaces::create_space(
+            self.name.clone(),
+            self.description.clone(),
+            client.get_user_id(),
+            self.scope.clone(),
+        )
+        .await;
         match space {
             Ok(space) => Response::CreateSpace(CreateSpaceResponse { space }),
-            Err(e) => Response::Error(ErrorResponse {
-                error: e,
-            }),
+            Err(e) => Response::Error(ErrorResponse { error: e }),
         }
     }
 }
@@ -93,12 +107,14 @@ pub struct JoinSpaceMethod {
 impl Respond for JoinSpaceMethod {
     async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
         let client = clients.get(&id).unwrap();
-        let space = crate::services::database::invites::accept_invite(client.get_user_id(), self.code.clone()).await;
+        let space = crate::services::database::invites::accept_invite(
+            client.get_user_id(),
+            self.code.clone(),
+        )
+        .await;
         match space {
             Ok(space) => Response::JoinSpace(JoinSpaceResponse { space }),
-            Err(e) => Response::Error(ErrorResponse {
-                error: e,
-            }),
+            Err(e) => Response::Error(ErrorResponse { error: e }),
         }
     }
 }
@@ -119,12 +135,16 @@ pub struct LeaveSpaceMethod {
 impl Respond for LeaveSpaceMethod {
     async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
         let client = clients.get(&id).unwrap();
-        let space = crate::services::database::spaces::leave_space(self.space_id.clone(), client.get_user_id()).await;
+        let space = crate::services::database::spaces::leave_space(
+            self.space_id.clone(),
+            client.get_user_id(),
+        )
+        .await;
         match space {
-            Ok(_) => Response::LeaveSpace(LeaveSpaceResponse { space_id: self.space_id.clone() }),
-            Err(e) => Response::Error(ErrorResponse {
-                error: e,
+            Ok(_) => Response::LeaveSpace(LeaveSpaceResponse {
+                space_id: self.space_id.clone(),
             }),
+            Err(e) => Response::Error(ErrorResponse { error: e }),
         }
     }
 }
@@ -146,9 +166,7 @@ impl Respond for GetSpacesMethod {
         let spaces = crate::services::database::spaces::get_spaces(client.get_user_id()).await;
         match spaces {
             Ok(spaces) => Response::GetSpaces(GetSpacesResponse { spaces }),
-            Err(e) => Response::Error(ErrorResponse {
-                error: e,
-            }),
+            Err(e) => Response::Error(ErrorResponse { error: e }),
         }
     }
 }
@@ -174,12 +192,16 @@ pub struct EditSpaceMethod {
 impl Respond for EditSpaceMethod {
     async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
         let client = clients.get(&id).unwrap();
-        let space = update_space(self.space_id.clone(), self.name.clone(), self.description.clone(), self.base_permissions).await;
+        let space = update_space(
+            self.space_id.clone(),
+            self.name.clone(),
+            self.description.clone(),
+            self.base_permissions,
+        )
+        .await;
         match space {
             Ok(space) => Response::EditSpace(EditSpaceResponse { space }),
-            Err(e) => Response::Error(ErrorResponse {
-                error: e,
-            }),
+            Err(e) => Response::Error(ErrorResponse { error: e }),
         }
     }
 }
@@ -202,10 +224,10 @@ impl Respond for DeleteSpaceMethod {
         let client = clients.get(&id).unwrap();
         let space = delete_space(self.space_id.clone()).await;
         match space {
-            Ok(_) => Response::DeleteSpace(DeleteSpaceResponse { id: self.space_id.clone() }),
-            Err(e) => Response::Error(ErrorResponse {
-                error: e,
+            Ok(_) => Response::DeleteSpace(DeleteSpaceResponse {
+                id: self.space_id.clone(),
             }),
+            Err(e) => Response::Error(ErrorResponse { error: e }),
         }
     }
 }

@@ -1,10 +1,19 @@
 use async_trait::async_trait;
 use dashmap::DashMap;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::{services::{socket::RpcClient, database::{channels::{get_channel, Channel, in_channel}, spaces::in_space}}, errors::Error};
+use crate::{
+    errors::Error,
+    services::{
+        database::{
+            channels::{get_channel, in_channel, Channel},
+            spaces::in_space,
+        },
+        socket::RpcClient,
+    },
+};
 
-use super::{Respond, Response, ErrorResponse};
+use super::{ErrorResponse, Respond, Response};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -23,7 +32,8 @@ impl Respond for GetChannelMethod {
             Ok(channel) => {
                 let client = clients.get(&id).unwrap();
                 match channel {
-                    Channel::PrivateChannel { ref id, .. } | Channel::GroupChannel { ref id, .. } => {
+                    Channel::PrivateChannel { ref id, .. }
+                    | Channel::GroupChannel { ref id, .. } => {
                         if self.space_id.is_some() {
                             return Response::Error(ErrorResponse {
                                 error: Error::NotFound,
@@ -38,20 +48,21 @@ impl Respond for GetChannelMethod {
                                     });
                                 }
                                 Response::GetChannel(GetChannelResponse { channel })
-                            },
-                            Err(error) => Response::Error(ErrorResponse { error })
                         }
-                    },
-                    Channel::InformationChannel { ref space_id, .. } | 
-                    Channel::AnnouncementChannel { ref space_id, .. } | 
-                    Channel::ChatChannel { ref space_id, .. } => {
+                            Err(error) => Response::Error(ErrorResponse { error }),
+                        }
+                    }
+                    Channel::InformationChannel { ref space_id, .. }
+                    | Channel::AnnouncementChannel { ref space_id, .. }
+                    | Channel::ChatChannel { ref space_id, .. } => {
                         if let Some(request_space_id) = &self.space_id {
                             if request_space_id != space_id {
                                 return Response::Error(ErrorResponse {
                                     error: Error::NotFound,
                                 });
                             }
-                            let user_in_space = in_space(client.get_user_id(), space_id.clone()).await;
+                            let user_in_space =
+                                in_space(client.get_user_id(), space_id.clone()).await;
                             match user_in_space {
                                 Ok(user_in_space) => {
                                     if !user_in_space {
@@ -60,8 +71,8 @@ impl Respond for GetChannelMethod {
                                         });
                                     }
                                     Response::GetChannel(GetChannelResponse { channel })
-                                },
-                                Err(error) => Response::Error(ErrorResponse { error })
+                                }
+                                Err(error) => Response::Error(ErrorResponse { error }),
                             }
                         } else {
                             Response::Error(ErrorResponse {
@@ -70,8 +81,6 @@ impl Respond for GetChannelMethod {
                         }
                     }
                 }
-
-
             }
             Err(error) => Response::Error(ErrorResponse { error }),
         }
@@ -90,7 +99,6 @@ pub struct GetChannelResponse {
 //     scope_id: Option<String>,
 // }
 // TODO: work out how scopes work with private channels
-
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CreateChannelMethod {

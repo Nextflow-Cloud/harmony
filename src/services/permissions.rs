@@ -1,23 +1,28 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use super::database::{members::Member, spaces::get_space, roles::{get_role, Role}, channels::Channel};
+use super::database::{
+    channels::Channel,
+    members::Member,
+    roles::{get_role, Role},
+    spaces::get_space,
+};
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[repr(i64)]
 pub enum Permission {
-    Administrator = 0x1, // 1 << 0
-    ViewChannel = 0x2, // 1 << 1
-    SendMessages = 0x4, // 1 << 2
-    DeleteMessages = 0x8, // 1 << 3
-    CreateInvite = 0x10, // 1 << 4
-    SuspendMembers = 0x20, // 1 << 5
-    KickMembers = 0x40, // 1 << 6
-    BanMembers = 0x80, // 1 << 7
+    Administrator = 0x1,    // 1 << 0
+    ViewChannel = 0x2,      // 1 << 1
+    SendMessages = 0x4,     // 1 << 2
+    DeleteMessages = 0x8,   // 1 << 3
+    CreateInvite = 0x10,    // 1 << 4
+    SuspendMembers = 0x20,  // 1 << 5
+    KickMembers = 0x40,     // 1 << 6
+    BanMembers = 0x80,      // 1 << 7
     ManageChannels = 0x100, // 1 << 8
-    ManageInvites = 0x200, // 1 << 9
-    ManageRoles = 0x400, // 1 << 10
-    ManageSpace = 0x800, // 1 << 11
+    ManageInvites = 0x200,  // 1 << 9
+    ManageRoles = 0x400,    // 1 << 10
+    ManageSpace = 0x800,    // 1 << 11
 }
 
 #[derive(Clone, Debug)]
@@ -67,9 +72,7 @@ impl<'de> Deserialize<'de> for PermissionSet {
 
 impl PermissionSet {
     pub fn new() -> Self {
-        Self {
-            permissions: 0,
-        }
+        Self { permissions: 0 }
     }
 
     pub fn all() -> Self {
@@ -111,21 +114,23 @@ impl PermissionSet {
 
 impl From<i64> for PermissionSet {
     fn from(permissions: i64) -> Self {
-        Self {
-            permissions,
-        }
+        Self { permissions }
     }
 }
 
 pub async fn permissions_for(member: Member) -> PermissionSet {
-    let space = get_space(member.space_id).await.expect("Unexpected error: failed to get space");
+    let space = get_space(member.space_id)
+        .await
+        .expect("Unexpected error: failed to get space");
     if space.owner == member.id {
         PermissionSet::all()
     } else {
         let mut calculated_permissions = PermissionSet::from(space.base_permissions);
         let roles_sorted = member.roles.clone();
         let futures = roles_sorted.iter().map(|role| get_role(role.to_string()));
-        let mut roles = futures_util::future::try_join_all(futures).await.expect("Unexpected error: failed to get roles");
+        let mut roles = futures_util::future::try_join_all(futures)
+            .await
+            .expect("Unexpected error: failed to get roles");
         roles.sort_by(|a, b| a.position.cmp(&b.position));
         roles.reverse();
         let default = calculated_permissions.to_vec();
@@ -146,23 +151,27 @@ pub async fn permissions_for(member: Member) -> PermissionSet {
     }
 }
 
-pub async fn channel_permissions_for(member: Member, channel: Channel) {
-    
-}
+pub async fn channel_permissions_for(member: Member, channel: Channel) {}
 
 pub async fn is_owner(member: Member) -> bool {
-    let space = get_space(member.space_id).await.expect("Unexpected error: failed to get space");
+    let space = get_space(member.space_id)
+        .await
+        .expect("Unexpected error: failed to get space");
     space.owner == member.id
 }
 
 pub async fn can_modify_role(member: Member, role: Role) -> bool {
-    let space = get_space(member.space_id.clone()).await.expect("Unexpected error: failed to get space");
+    let space = get_space(member.space_id.clone())
+        .await
+        .expect("Unexpected error: failed to get space");
     if space.owner == member.id {
         return true;
     }
     let member_roles = member.roles.clone();
     let futures = member_roles.iter().map(|role| get_role(role.to_string()));
-    let mut roles = futures_util::future::try_join_all(futures).await.expect("Unexpected error: failed to get roles");
+    let mut roles = futures_util::future::try_join_all(futures)
+        .await
+        .expect("Unexpected error: failed to get roles");
     roles.sort_by(|a, b| a.position.cmp(&b.position));
     roles.reverse();
     let permissions = permissions_for(member).await;
@@ -207,6 +216,5 @@ pub async fn has_permission(member: Member, permission: Permission) -> bool {
 //         }
 //     }
 //     // Append a permission check to the original function
-    
-    
+
 // }

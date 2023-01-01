@@ -25,7 +25,13 @@ pub enum InfractionType {
     Ban,
 }
 
-pub async fn create_ban(space_id: String, member_id: String, reason: String, expires_at: Option<i64>, created_by: String) -> Result<()> {
+pub async fn create_ban(
+    space_id: String,
+    member_id: String,
+    reason: String,
+    expires_at: Option<i64>,
+    created_by: String,
+) -> Result<()> {
     let database = super::get_database();
     let ban = Infraction {
         id: Ulid::new().to_string(),
@@ -48,14 +54,17 @@ pub async fn is_banned(user_id: String, space_id: String) -> Result<bool> {
     let database = super::get_database();
     let bans = database
         .collection::<Infraction>("infractions")
-        .find(doc! {
-            "member_id": user_id,
-            "space_id": space_id,
-            "expires_at": {
-                "$gt": chrono::Utc::now().timestamp_millis()
+        .find(
+            doc! {
+                "member_id": user_id,
+                "space_id": space_id,
+                "expires_at": {
+                    "$gt": chrono::Utc::now().timestamp_millis()
+                },
+                "infraction_type": "BAN"
             },
-            "infraction_type": "BAN"
-        }, None)
+            None,
+        )
         .await?;
     let is_banned = bans.count().await > 0;
     Ok(is_banned)
@@ -65,10 +74,13 @@ pub async fn revoke_ban(ban_id: String) -> Result<()> {
     let database = super::get_database();
     database
         .collection::<Infraction>("infractions")
-        .delete_one(doc! {
-            "id": ban_id,
-            "infraction_type": "BAN"
-        }, None)
+        .delete_one(
+            doc! {
+                "id": ban_id,
+                "infraction_type": "BAN"
+            },
+            None,
+        )
         .await?;
     Ok(())
 }

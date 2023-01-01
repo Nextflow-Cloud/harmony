@@ -1,4 +1,7 @@
-use std::sync::{Arc, mpsc::{channel, Sender}};
+use std::sync::{
+    mpsc::{channel, Sender},
+    Arc,
+};
 
 use async_std::{
     net::{TcpListener, TcpStream},
@@ -7,7 +10,7 @@ use async_std::{
 };
 use async_tungstenite::{accept_async, tungstenite::Message, WebSocketStream};
 use dashmap::DashMap;
-use futures_util::{SinkExt, StreamExt, stream::SplitSink};
+use futures_util::{stream::SplitSink, SinkExt, StreamExt};
 use once_cell::sync::OnceCell;
 use rand::rngs::OsRng;
 use rmp_serde::{Deserializer, Serializer};
@@ -16,11 +19,12 @@ use x25519_dalek::{EphemeralSecret, PublicKey};
 
 use crate::{
     errors::Error,
+    globals::HEARTBEAT_TIMEOUT,
     methods::{
-        ErrorResponse, Event, HelloEvent, Response, RpcApiEvent,
-        RpcApiMethod, RpcApiResponse, get_respond,
+        get_respond, ErrorResponse, Event, HelloEvent, Response, RpcApiEvent, RpcApiMethod,
+        RpcApiResponse,
     },
-    services::encryption::{generate, random_number}, globals::HEARTBEAT_TIMEOUT,
+    services::encryption::{generate, random_number},
 };
 
 use super::environment::LISTEN_ADDRESS;
@@ -101,7 +105,10 @@ async fn connection_loop() {
             let clients_moved = clients.clone();
             let id_moved = id.clone();
             spawn(async move {
-                while rx.recv_timeout(std::time::Duration::from_millis(*HEARTBEAT_TIMEOUT)).is_ok() {}
+                while rx
+                    .recv_timeout(std::time::Duration::from_millis(*HEARTBEAT_TIMEOUT))
+                    .is_ok()
+                {}
                 if let Some(client) = clients_moved.get(&id_moved) {
                     let mut socket = client.socket.lock().await;
                     socket.close().await.expect("Failed to close socket");
@@ -147,7 +154,9 @@ async fn connection_loop() {
                                 }
                                 drop(request_ids);
                                 drop(client);
-                                let dispatch = get_respond(r.method).respond(clients.clone(), id.clone()).await;
+                                let dispatch = get_respond(r.method)
+                                    .respond(clients.clone(), id.clone())
+                                    .await;
                                 let mut value_buffer = Vec::new();
                                 let return_value = RpcApiResponse {
                                     id: Some(request_id),
@@ -155,8 +164,7 @@ async fn connection_loop() {
                                 };
                                 return_value
                                     .serialize(
-                                        &mut Serializer::new(&mut value_buffer)
-                                            .with_struct_map(),
+                                        &mut Serializer::new(&mut value_buffer).with_struct_map(),
                                     )
                                     .unwrap();
                                 let mut write = socket_arc.lock().await;
@@ -169,8 +177,7 @@ async fn connection_loop() {
                                 let mut value_buffer = Vec::new();
                                 error
                                     .serialize(
-                                        &mut Serializer::new(&mut value_buffer)
-                                            .with_struct_map(),
+                                        &mut Serializer::new(&mut value_buffer).with_struct_map(),
                                     )
                                     .unwrap();
                                 let mut write = socket_arc.lock().await;
@@ -218,7 +225,6 @@ async fn connection_loop() {
                     }
                 }
             }
-            
         });
     }
 }

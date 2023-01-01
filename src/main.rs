@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
+pub mod errors;
 pub mod globals;
 pub mod methods;
 pub mod services;
-pub mod errors;
 
 use services::database;
 use services::socket;
@@ -23,7 +23,7 @@ async fn main() {
     info!("Connected to database");
 
     // run DB migrations as necessary
-    
+
     // webrtc::create_workers().await;
     // println!("SFU workers have spawned");
 

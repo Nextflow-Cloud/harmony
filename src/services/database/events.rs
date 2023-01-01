@@ -1,7 +1,7 @@
 use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
 
-use crate::errors::{Result, Error};
+use crate::errors::{Error, Result};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Event {

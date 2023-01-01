@@ -1,6 +1,6 @@
 use std::fmt;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::services::permissions::Permission;
 
@@ -10,17 +10,13 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[serde(tag = "error", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Error {
     // Generic errors
-    DatabaseError {
-        message: String,
-    },
+    DatabaseError { message: String },
     NotFound,
     Unimplemented,
     InvalidMethod,
     InvalidRequestId,
     InternalError,
-    MissingPermission {
-        permission: Permission,
-    },
+    MissingPermission { permission: Permission },
 
     // Authentication errors
     InvalidToken,

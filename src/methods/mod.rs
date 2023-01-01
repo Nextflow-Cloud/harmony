@@ -2,19 +2,42 @@ use async_trait::async_trait;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 
-use crate::{services::{database::messages::Message, socket::RpcClient}, errors::Error};
+use crate::{
+    errors::Error,
+    services::{database::messages::Message, socket::RpcClient},
+};
 
-use self::{messages::{GetMessagesMethod, SendMessageMethod, GetMessagesResponse, SendMessageResponse}, spaces::{GetSpaceMethod, CreateSpaceMethod, EditSpaceMethod, DeleteSpaceMethod, GetSpaceResponse, CreateSpaceResponse, EditSpaceResponse, DeleteSpaceResponse, JoinSpaceResponse, LeaveSpaceResponse, GetSpacesResponse}, authentication::{IdentifyResponse, GetIdResponse, IdentifyMethod, GetIdMethod, HeartbeatMethod, HeartbeatResponse}, channels::{GetChannelMethod, GetChannelResponse}, invites::{CreateInviteMethod, CreateInviteResponse, GetInvitesMethod, GetInviteMethod, DeleteInviteMethod, GetInviteResponse, DeleteInviteResponse, GetInvitesResponse}, roles::{CreateRoleMethod, DeleteRoleMethod, EditRoleMethod, CreateRoleResponse, EditRoleResponse, DeleteRoleResponse}};
+use self::{
+    authentication::{
+        GetIdMethod, GetIdResponse, HeartbeatMethod, HeartbeatResponse, IdentifyMethod,
+        IdentifyResponse,
+    },
+    channels::{GetChannelMethod, GetChannelResponse},
+    invites::{
+        CreateInviteMethod, CreateInviteResponse, DeleteInviteMethod, DeleteInviteResponse,
+        GetInviteMethod, GetInviteResponse, GetInvitesMethod, GetInvitesResponse,
+    },
+    messages::{GetMessagesMethod, GetMessagesResponse, SendMessageMethod, SendMessageResponse},
+    roles::{
+        CreateRoleMethod, CreateRoleResponse, DeleteRoleMethod, DeleteRoleResponse, EditRoleMethod,
+        EditRoleResponse,
+    },
+    spaces::{
+        CreateSpaceMethod, CreateSpaceResponse, DeleteSpaceMethod, DeleteSpaceResponse,
+        EditSpaceMethod, EditSpaceResponse, GetSpaceMethod, GetSpaceResponse, GetSpacesResponse,
+        JoinSpaceResponse, LeaveSpaceResponse,
+    },
+};
 
 pub mod authentication;
-pub mod webrtc;
-pub mod messages;
 pub mod channels;
-pub mod spaces;
-pub mod invites;
-pub mod roles;
-pub mod users;
 pub mod events;
+pub mod invites;
+pub mod messages;
+pub mod roles;
+pub mod spaces;
+pub mod users;
+pub mod webrtc;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "type", content = "data", rename_all = "SCREAMING_SNAKE_CASE")]
@@ -115,15 +138,11 @@ pub struct RemoveFriendMethod {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GetFriendsMethod {
-    
-}
+pub struct GetFriendsMethod {}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GetFriendRequestsMethod {
-    
-}
+pub struct GetFriendRequestsMethod {}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]

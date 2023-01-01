@@ -3,7 +3,7 @@ use mongodb::bson::{self, doc};
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-use crate::errors::{Result, Error};
+use crate::errors::{Error, Result};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Role {
@@ -41,12 +41,7 @@ pub async fn create_role(
         space_id,
         scope_id: "global".to_string(), // FIXME: scope_id
     };
-    roles
-        .insert_one(
-            role.clone(),
-            None,
-        )
-        .await?;
+    roles.insert_one(role.clone(), None).await?;
     Ok(role)
 }
 
@@ -92,7 +87,12 @@ pub async fn get_roles(space_id: String) -> Result<Vec<Role>> {
     Ok(roles.try_collect().await?)
 }
 
-pub async fn update_role(role_id: String, name: String, permissions: i64, color: Color) -> Result<Role> {
+pub async fn update_role(
+    role_id: String,
+    name: String,
+    permissions: i64,
+    color: Color,
+) -> Result<Role> {
     let roles = super::get_database().collection::<Role>("roles");
     let role = roles
         .find_one_and_update(
@@ -114,4 +114,3 @@ pub async fn update_role(role_id: String, name: String, permissions: i64, color:
         None => Err(Error::NotFound),
     }
 }
-

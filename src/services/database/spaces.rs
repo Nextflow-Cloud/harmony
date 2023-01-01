@@ -3,9 +3,9 @@ use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-use crate::errors::{Result, Error};
+use crate::errors::{Error, Result};
 
-use super::{channels::Channel, members::Member, roles::Role, invites::Invite};
+use super::{channels::Channel, invites::Invite, members::Member, roles::Role};
 // use super::invites::Invite;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -40,12 +40,7 @@ pub async fn create_space(
         scope_id: scope_id.unwrap_or("global".to_owned()),
         base_permissions: 0x16,
     };
-    spaces
-        .insert_one(
-            space.clone(),
-            None,
-        )
-        .await?;
+    spaces.insert_one(space.clone(), None).await?;
     Ok(space)
 }
 
@@ -144,9 +139,7 @@ pub async fn get_spaces(user_id: String) -> Result<Vec<Space>> {
         )
         .await?;
     let mut spaces: Vec<Space> = spaces
-        .filter_map(|space| async move {
-            space.ok()
-        })
+        .filter_map(|space| async move { space.ok() })
         .collect()
         .await;
     spaces.sort_by(|a, b| a.name.cmp(&b.name));
@@ -187,8 +180,12 @@ pub async fn change_owner(space_id: String, user_id: String) -> Result<()> {
     Ok(())
 }
 
-
-pub async fn update_space(space_id: String, name: Option<String>, description: Option<String>, base_permissions: Option<i32>) -> Result<Space> {
+pub async fn update_space(
+    space_id: String,
+    name: Option<String>,
+    description: Option<String>,
+    base_permissions: Option<i32>,
+) -> Result<Space> {
     let spaces = super::get_database().collection::<Space>("spaces");
     let mut update = doc! {};
     if let Some(name) = name {
