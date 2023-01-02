@@ -3,22 +3,20 @@ use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    errors::Error,
+    errors::{Error, Result},
     services::{
-        database::{
-            channels::{get_channel, in_channel, Channel},
-            spaces::in_space,
+        database::{channels::Channel
         },
         socket::RpcClient,
     },
 };
 
-use super::{ErrorResponse, Respond, Response};
+use super::{Respond, Response, authentication::check_authenticated};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GetChannelMethod {
-    channel_id: String,
+    id: String,
     // TODO: scopes
     scope_id: Option<String>,
     space_id: Option<String>,
@@ -26,65 +24,39 @@ pub struct GetChannelMethod {
 
 #[async_trait]
 impl Respond for GetChannelMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
-        let channel = get_channel(self.channel_id.clone()).await;
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
+        let user = check_authenticated(&clients, &id)?;
+        let channel = Channel::get(&self.id).await?;
         match channel {
-            Ok(channel) => {
-                let client = clients.get(&id).unwrap();
-                match channel {
-                    Channel::PrivateChannel { ref id, .. }
-                    | Channel::GroupChannel { ref id, .. } => {
+            Channel::PrivateChannel { .. }
+            | Channel::GroupChannel { .. } => {
                         if self.space_id.is_some() {
-                            return Response::Error(ErrorResponse {
-                                error: Error::NotFound,
-                            });
+                    return Err(Error::NotFound);
                         }
-                        let user_in_channel = in_channel(client.get_user_id(), id.clone()).await;
-                        match user_in_channel {
-                            Ok(user_in_channel) => {
-                                if !user_in_channel {
-                                    return Response::Error(ErrorResponse {
-                                        error: Error::NotFound,
-                                    });
+                let in_channel = user.in_channel(&channel).await?;
+                if !in_channel {
+                    return Err(Error::NotFound);
                                 }
-                                Response::GetChannel(GetChannelResponse { channel })
-                        }
-                            Err(error) => Response::Error(ErrorResponse { error }),
-                        }
+                Ok(Response::GetChannel(GetChannelResponse { channel }))
                     }
                     Channel::InformationChannel { ref space_id, .. }
                     | Channel::AnnouncementChannel { ref space_id, .. }
                     | Channel::ChatChannel { ref space_id, .. } => {
                         if let Some(request_space_id) = &self.space_id {
                             if request_space_id != space_id {
-                                return Response::Error(ErrorResponse {
-                                    error: Error::NotFound,
-                                });
+                        return Err(Error::NotFound);
                             }
-                            let user_in_space =
-                                in_space(client.get_user_id(), space_id.clone()).await;
-                            match user_in_space {
-                                Ok(user_in_space) => {
+                    let user_in_space = user.in_space(&space_id).await?;
                                     if !user_in_space {
-                                        return Response::Error(ErrorResponse {
-                                            error: Error::NotFound,
-                                        });
+                        return Err(Error::NotFound);
                                     }
-                                    Response::GetChannel(GetChannelResponse { channel })
-                                }
-                                Err(error) => Response::Error(ErrorResponse { error }),
-                            }
+                    Ok(Response::GetChannel(GetChannelResponse { channel }))
                         } else {
-                            Response::Error(ErrorResponse {
-                                error: Error::NotFound,
-                            })
+                    Err(Error::NotFound)
                         }
                     }
                 }
             }
-            Err(error) => Response::Error(ErrorResponse { error }),
-        }
-    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -93,12 +65,28 @@ pub struct GetChannelResponse {
     channel: Channel,
 }
 
-// #[derive(Clone, Debug, Deserialize, Serialize)]
-// #[serde(rename_all = "camelCase")]
-// pub struct GetChannelsMethod {
-//     scope_id: Option<String>,
-// }
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetChannelsMethod {
 // TODO: work out how scopes work with private channels
+    scope_id: Option<String>,
+}
+
+#[async_trait]
+impl Respond for GetChannelsMethod {
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
+        let user = check_authenticated(&clients, &id)?;
+        let channels = user.get_channels().await?;
+        Ok(Response::GetChannels(GetChannelsResponse { channels }))
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetChannelsResponse {
+    channels: Vec<Channel>,
+}
+// TODO: Partial structs
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CreateChannelMethod {
