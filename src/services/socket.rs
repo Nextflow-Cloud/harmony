@@ -152,13 +152,13 @@ async fn connection_loop() {
                                 let return_value: RpcApiResponse;
                                 if let Ok(dispatch) = dispatch {
                                     return_value = RpcApiResponse {
-                                        id: None,
+                                        id: Some(request_id),
                                         response: Some(dispatch),
                                         error: None,
                                     };
                                 } else {
                                     return_value = RpcApiResponse {
-                                        id: None,
+                                        id: Some(request_id),
                                         response: None,
                                         error: Some(dispatch.unwrap_err()),
                                     };
