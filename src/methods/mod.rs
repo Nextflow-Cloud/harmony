@@ -3,7 +3,7 @@ use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    errors::Error,
+    errors::{Error, Result},
     services::{database::messages::Message, socket::RpcClient},
 };
 
@@ -12,7 +12,7 @@ use self::{
         GetIdMethod, GetIdResponse, HeartbeatMethod, HeartbeatResponse, IdentifyMethod,
         IdentifyResponse,
     },
-    channels::{GetChannelMethod, GetChannelResponse},
+    channels::{GetChannelMethod, GetChannelResponse, GetChannelsResponse, GetChannelsMethod},
     invites::{
         CreateInviteMethod, CreateInviteResponse, DeleteInviteMethod, DeleteInviteResponse,
         GetInviteMethod, GetInviteResponse, GetInvitesMethod, GetInvitesResponse,
@@ -45,17 +45,18 @@ pub mod webrtc;
 pub enum Method {
     Identify(IdentifyMethod) = 1,
     Heartbeat(HeartbeatMethod) = 2,
-    GetId(GetIdMethod) = 5,
-    
-    // WebRTC: 10-19
+    GetId(GetIdMethod) = 3,
 
+    // WebRTC: 10-19
+    
     GetMessages(GetMessagesMethod) = 20,
     SendMessage(SendMessageMethod) = 22,
 
     GetChannel(GetChannelMethod) = 30,
-    // CreateChannel(CreateChannelMethod) = 31,
-    // EditChannel(EditChannelMethod) = 32,
-    // DeleteChannel(DeleteChannelMethod) = 33,
+    GetChannels(GetChannelsMethod) = 31,
+    // CreateChannel(CreateChannelMethod) = 32,
+    // EditChannel(EditChannelMethod) = 33,
+    // DeleteChannel(DeleteChannelMethod) = 34,
 
     GetSpace(GetSpaceMethod) = 40,
     CreateSpace(CreateSpaceMethod) = 41,
@@ -77,12 +78,12 @@ pub enum Method {
     EditRole(EditRoleMethod) = 71,
     DeleteRole(DeleteRoleMethod) = 72,
     // GetRoles(GetRolesMethod) = 73,
-
+    
 }
 
 #[async_trait]
 pub trait Respond {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response;
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response>;
 }
 
 pub fn get_respond(m: Method) -> Box<dyn Respond + Send + Sync> {
@@ -93,6 +94,7 @@ pub fn get_respond(m: Method) -> Box<dyn Respond + Send + Sync> {
         Method::GetMessages(m) => Box::new(m),
         Method::SendMessage(m) => Box::new(m),
         Method::GetChannel(m) => Box::new(m),
+        Method::GetChannels(m) => Box::new(m),
         // Method::CreateChannel(m) => m,
         // Method::EditChannel(m) => m,
         // Method::DeleteChannel(m) => m,
@@ -156,19 +158,19 @@ pub struct AcknowledgeFriendRequestMethod {
 #[serde(tag = "type", content = "data", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Response {
     Identify(IdentifyResponse) = 1,
-    Heartbeat(HeartbeatResponse) = 3,
-    Error(ErrorResponse) = 4,
-    GetId(GetIdResponse) = 5,
+    Heartbeat(HeartbeatResponse) = 2,
+    GetId(GetIdResponse) = 3,
 
     // WebRTC: 10-19
-
+    
     GetMessages(GetMessagesResponse) = 20,
     SendMessage(SendMessageResponse) = 22,
 
     GetChannel(GetChannelResponse) = 30,
-    // CreateChannel(CreateChannelResponse) = 31,
-    // EditChannel(EditChannelResponse) = 32,
-    // DeleteChannel(DeleteChannelResponse) = 33,
+    GetChannels(GetChannelsResponse) = 31,
+    // CreateChannel(CreateChannelResponse) = 32,
+    // EditChannel(EditChannelResponse) = 33,
+    // DeleteChannel(DeleteChannelResponse) = 34,
 
     GetSpace(GetSpaceResponse) = 40,
     CreateSpace(CreateSpaceResponse) = 41,
@@ -190,16 +192,14 @@ pub enum Response {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RpcApiResponse {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) id: Option<String>,
     #[serde(flatten)]
-    pub(crate) response: Response,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ErrorResponse {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) response: Option<Response>,
     #[serde(flatten)]
-    pub(crate) error: Error,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) error: Option<Error>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -207,7 +207,7 @@ pub struct ErrorResponse {
 #[serde(tag = "type", content = "data", rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Event {
     Hello(HelloEvent) = 0,
-    
+
     // WebRTC: 10-19
 
     NewMessage(NewMessageEvent) = 21,
