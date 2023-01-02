@@ -8,14 +8,14 @@ use rmp_serde::Serializer;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    errors::Error,
+    errors::{Error, Result},
     services::{
-        database::messages::{create_message, get_messages, Message},
+        database::{messages::{Message}, channels::Channel},
         socket::RpcClient,
     },
 };
 
-use super::{ErrorResponse, Event, NewMessageEvent, Respond, Response, RpcApiEvent};
+use super::{Event, NewMessageEvent, Respond, Response, RpcApiEvent};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -29,16 +29,17 @@ pub struct GetMessagesMethod {
 
 #[async_trait]
 impl Respond for GetMessagesMethod {
-    async fn respond(&self, _: DashMap<String, RpcClient>, _: String) -> Response {
-        let messages = get_messages(
-            self.channel_id.clone(),
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
+        super::authentication::check_authenticated(&clients, &id)?;
+        let channel = Channel::get(&self.channel_id).await?;
+        let messages = channel.get_messages(
             self.limit,
             self.latest,
             self.before.clone(),
             self.after.clone(),
         )
-        .await;
-        Response::GetMessages(GetMessagesResponse { messages })
+        .await?;
+        Ok(Response::GetMessages(GetMessagesResponse { messages }))
     }
 }
 
@@ -57,54 +58,53 @@ pub struct SendMessageMethod {
 
 #[async_trait]
 impl Respond for SendMessageMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
+        let user = super::authentication::check_authenticated(&clients, &id)?;
         let trimmed = self.content.trim();
         if trimmed.len() > 4096 {
-            return Response::Error(ErrorResponse {
-                error: Error::MessageTooLong,
-            });
+            return Err(Error::MessageTooLong);
         }
         if trimmed.len() < 1 {
-            return Response::Error(ErrorResponse {
-                error: Error::MessageEmpty,
-            });
+            return Err(Error::MessageEmpty);
         }
-        let client = clients.get(&id).unwrap();
-        let message = create_message(
+        let message = Message::create(
             self.channel_id.clone(),
-            client.get_user_id(),
+            user.id.clone(),
             trimmed.to_owned(),
         )
-        .await;
+        .await?;
         for x in clients.clone().iter_mut() {
-            println!("Sending message to {}", x.get_user_id());
-            let mut value_buffer = Vec::new();
-            let value = RpcApiEvent {
-                event: Event::NewMessage(NewMessageEvent {
-                    message: message.clone(),
-                    channel_id: self.channel_id.clone(),
-                }),
-            };
-            value
-                .serialize(&mut Serializer::new(&mut value_buffer).with_struct_map())
-                .unwrap();
-            println!("Serialized");
-            let y = x.socket.clone();
-            future::timeout(Duration::from_millis(5000), async move {
-                y.lock()
-                    .await
-                    .send(async_tungstenite::tungstenite::Message::Binary(
-                        value_buffer,
-                    ))
-                    .await
-            })
-            .await
-            .unwrap_or_else(|_| Ok(()))
-            .unwrap_or_else(|e| println!("{:?}", e));
+            // TODO: Check if user is in channel
+            if let Some(u) = &x.user {
+                println!("Sending message to {}", u.id);
+                let mut value_buffer = Vec::new();
+                let value = RpcApiEvent {
+                    event: Event::NewMessage(NewMessageEvent {
+                        message: message.clone(),
+                        channel_id: self.channel_id.clone(),
+                    }),
+                };
+                value
+                    .serialize(&mut Serializer::new(&mut value_buffer).with_struct_map())
+                    .unwrap();
+                println!("Serialized");
+                let y = x.socket.clone();
+                future::timeout(Duration::from_millis(5000), async move {
+                    y.lock()
+                        .await
+                        .send(async_tungstenite::tungstenite::Message::Binary(
+                            value_buffer,
+                        ))
+                        .await
+                })
+                .await
+                .unwrap_or_else(|_| Ok(()))
+                .unwrap_or_else(|e| println!("{:?}", e));
+            }
         }
-        Response::SendMessage(SendMessageResponse {
+        Ok(Response::SendMessage(SendMessageResponse {
             message_id: message.id,
-        })
+        }))
     }
 }
 
