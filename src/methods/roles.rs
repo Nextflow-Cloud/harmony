@@ -3,18 +3,18 @@ use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    errors::Error,
+    errors::{Error, Result},
     services::{
         database::{
             members::get_member,
-            roles::{create_role, delete_role, get_role, update_role, Color, Role},
+            roles::{Color, Role},
         },
         permissions::{can_modify_role, Permission},
         socket::RpcClient,
     },
 };
 
-use super::{ErrorResponse, Respond, Response};
+use super::{Respond, Response};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -27,18 +27,16 @@ pub struct CreateRoleMethod {
 
 #[async_trait]
 impl Respond for CreateRoleMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
-        let role = create_role(
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
+        super::authentication::check_authenticated(&clients, &id)?;
+        let role = Role::create(
             self.space_id.clone(),
             self.name.clone(),
             self.permissions,
             self.color.clone(),
         )
-        .await;
-        match role {
-            Ok(role) => Response::CreateRole(CreateRoleResponse { role }),
-            Err(error) => Response::Error(ErrorResponse { error }),
-        }
+        .await?;
+        Ok(Response::CreateRole(CreateRoleResponse { role }))
     }
 }
 
@@ -62,48 +60,29 @@ pub struct EditRoleMethod {
 
 #[async_trait]
 impl Respond for EditRoleMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
-        let role = get_role(self.id.clone()).await;
-        let role = match role {
-            Ok(role) => role,
-            Err(error) => return Response::Error(ErrorResponse { error }),
-        };
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
+        super::authentication::check_authenticated(&clients, &id)?;
+        let role = Role::get(&self.id).await?;
         if role.space_id != self.space_id {
-            return Response::Error(ErrorResponse {
-                error: Error::NotFound,
-            });
+            return Err(Error::NotFound);
         }
         if let Some(scope_id) = &self.scope_id {
             if role.scope_id != scope_id.clone() {
-                return Response::Error(ErrorResponse {
-                    error: Error::NotFound,
-                });
+                return Err(Error::NotFound);
             }
         }
-        let member = get_member(id, self.space_id.clone()).await;
-        let member = match member {
-            Ok(member) => member,
-            Err(error) => return Response::Error(ErrorResponse { error }),
-        };
-        let can_modify = can_modify_role(member, role).await;
+        let member = get_member(id, self.space_id.clone()).await?;
+        let can_modify = can_modify_role(&member, &role).await?;
         if !can_modify {
-            return Response::Error(ErrorResponse {
-                error: Error::MissingPermission {
-                    permission: Permission::ManageRoles,
-                },
-            });
+            return Err(Error::MissingPermission { permission: Permission::ManageRoles })
         }
-        let role = update_role(
-            self.id.clone(),
+        let role = role.update(
             self.name.clone(),
             self.permissions,
             self.color.clone(),
         )
-        .await;
-        match role {
-            Ok(role) => Response::EditRole(EditRoleResponse { role }),
-            Err(error) => Response::Error(ErrorResponse { error }),
-        }
+        .await?;
+        Ok(Response::EditRole(EditRoleResponse { role }))
     }
 }
 
@@ -121,15 +100,13 @@ pub struct DeleteRoleMethod {
 
 #[async_trait]
 impl Respond for DeleteRoleMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
-        let client = clients.get(&id).unwrap();
-        let role = delete_role(self.id.clone()).await;
-        match role {
-            Ok(_) => Response::DeleteRole(DeleteRoleResponse {
-                id: self.id.clone(),
-            }),
-            Err(error) => Response::Error(ErrorResponse { error }),
-        }
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
+        super::authentication::check_authenticated(&clients, &id)?;
+        let role = Role::get(&self.id).await?;
+        role.delete().await?;
+        Ok(Response::DeleteRole(DeleteRoleResponse {
+            id: self.id.clone(),
+        }))
     }
 }
 
