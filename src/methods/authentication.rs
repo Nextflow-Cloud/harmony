@@ -134,9 +134,9 @@ pub struct GetIdResponse {
     pub request_ids: Vec<String>,
 }
 
-pub fn check_authenticated<'a>(
+pub fn check_authenticated(
     clients: Arc<DashMap<String, RpcClient>>,
-    id: &'a str,
+    id: &str,
 ) -> Result<Arc<User>> {
     let client = clients.get(id).expect("Failed to get client");
     if let Some(x) = &client.user {
