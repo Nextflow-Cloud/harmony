@@ -1,9 +1,10 @@
-use futures_util::TryStreamExt;
 use mongodb::bson::{self, doc};
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
 use crate::errors::{Error, Result};
+
+use super::spaces::Space;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Role {
@@ -25,13 +26,13 @@ pub struct Color {
 
 impl Role {
     pub async fn create(
-        space_id: String,
+        space: &Space,
         name: String,
         permissions: i64,
         color: Color,
     ) -> Result<Role> {
         let roles = super::get_database().collection::<Role>("roles");
-        let space_roles = get_roles(space_id.clone()).await?;
+        let space_roles = space.get_roles().await?;
         let position = space_roles.len() as i32;
         let role = Role {
             id: Ulid::new().to_string(),
@@ -39,7 +40,7 @@ impl Role {
             permissions,
             color,
             position,
-            space_id,
+            space_id: space.id.clone(),
             scope_id: "global".to_string(), // FIXME: scope_id
         };
         roles.insert_one(role.clone(), None).await?;
@@ -102,17 +103,4 @@ impl Role {
             None => Err(Error::NotFound),
         }
     }
-}
-
-pub async fn get_roles(space_id: String) -> Result<Vec<Role>> {
-    let roles = super::get_database().collection::<Role>("roles");
-    let roles = roles
-        .find(
-            doc! {
-                "space_id": space_id,
-            },
-            None,
-        )
-        .await?;
-    Ok(roles.try_collect().await?)
 }

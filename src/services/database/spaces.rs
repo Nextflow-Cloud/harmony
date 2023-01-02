@@ -210,4 +210,18 @@ impl Space {
             .await?;
         Ok(channels)
     }
+
+    pub async fn get_roles(&self) -> Result<Vec<Role>> {
+        let roles = super::get_database().collection::<Role>("roles");
+        let roles = roles
+            .find(
+                doc! {
+                    "space_id": &self.id,
+                },
+                None,
+            )
+            .await?;
+        Ok(roles.try_collect().await?)
+    }
+    
 }

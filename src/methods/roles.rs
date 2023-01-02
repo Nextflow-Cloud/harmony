@@ -7,7 +7,7 @@ use crate::{
     services::{
         database::{
             members::get_member,
-            roles::{Color, Role},
+            roles::{Color, Role}, spaces::Space,
         },
         permissions::{can_modify_role, Permission},
         socket::RpcClient,
@@ -29,8 +29,9 @@ pub struct CreateRoleMethod {
 impl Respond for CreateRoleMethod {
     async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
         super::authentication::check_authenticated(&clients, &id)?;
+        let space = Space::get(&self.space_id).await?;
         let role = Role::create(
-            self.space_id.clone(),
+            &space,
             self.name.clone(),
             self.permissions,
             self.color.clone(),
