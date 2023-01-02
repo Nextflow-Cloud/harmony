@@ -1,10 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+use crate::errors::Result;
 use super::database::{
-    channels::Channel,
     members::Member,
-    roles::{get_role, Role},
-    spaces::get_space,
+    roles::{Role}, spaces::Space,
 };
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -52,7 +51,7 @@ impl Permission {
 }
 
 impl Serialize for PermissionSet {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
@@ -61,7 +60,7 @@ impl Serialize for PermissionSet {
 }
 
 impl<'de> Deserialize<'de> for PermissionSet {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
@@ -118,75 +117,28 @@ impl From<i64> for PermissionSet {
     }
 }
 
-pub async fn permissions_for(member: Member) -> PermissionSet {
-    let space = get_space(member.space_id)
+pub async fn can_modify_role(member: &Member, role: &Role) -> Result<bool> {
+    let space = Space::get(&member.space_id)
         .await
         .expect("Unexpected error: failed to get space");
     if space.owner == member.id {
-        PermissionSet::all()
-    } else {
-        let mut calculated_permissions = PermissionSet::from(space.base_permissions);
-        let roles_sorted = member.roles.clone();
-        let futures = roles_sorted.iter().map(|role| get_role(role.to_string()));
-        let mut roles = futures_util::future::try_join_all(futures)
-            .await
-            .expect("Unexpected error: failed to get roles");
-        roles.sort_by(|a, b| a.position.cmp(&b.position));
-        roles.reverse();
-        let default = calculated_permissions.to_vec();
-        for role in roles {
-            let role_permissions: PermissionSet = role.permissions.into();
-            if role_permissions.has_permission(Permission::Administrator) {
-                calculated_permissions = PermissionSet::all();
-                break;
-            }
-            for permission in &default {
-                if !role_permissions.has_permission(permission.clone()) {
-                    calculated_permissions.remove_permission(permission.clone());
-                }
-            }
-            calculated_permissions.combine(role_permissions);
-        }
-        calculated_permissions
-    }
-}
-
-pub async fn channel_permissions_for(member: Member, channel: Channel) {}
-
-pub async fn is_owner(member: Member) -> bool {
-    let space = get_space(member.space_id)
-        .await
-        .expect("Unexpected error: failed to get space");
-    space.owner == member.id
-}
-
-pub async fn can_modify_role(member: Member, role: Role) -> bool {
-    let space = get_space(member.space_id.clone())
-        .await
-        .expect("Unexpected error: failed to get space");
-    if space.owner == member.id {
-        return true;
+        return Ok(true);
     }
     let member_roles = member.roles.clone();
-    let futures = member_roles.iter().map(|role| get_role(role.to_string()));
+    let futures = member_roles.iter().map(|role| Role::get(role));
     let mut roles = futures_util::future::try_join_all(futures)
         .await
         .expect("Unexpected error: failed to get roles");
     roles.sort_by(|a, b| a.position.cmp(&b.position));
     roles.reverse();
-    let permissions = permissions_for(member).await;
+    let permissions = member.get_permissions().await?;
     if !permissions.has_permission(Permission::ManageRoles) {
-        return false;
+        return Ok(false);
     }
     if role.position < roles[0].position {
-        return true;
+        return Ok(true);
     }
-    false
-}
-
-pub async fn has_permission(member: Member, permission: Permission) -> bool {
-    let permissions = permissions_for(member).await;
-    permissions.has_permission(permission)
+    Ok(false)
 }
 
 // #[proc_macro_attribute]
