@@ -4,10 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     errors::{Error, Result},
-    services::{
-        database::spaces::{Space},
-        socket::RpcClient,
-    },
+    services::{database::spaces::Space, socket::RpcClient},
 };
 
 use super::{Respond, Response};
@@ -159,12 +156,13 @@ impl Respond for EditSpaceMethod {
     async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
         super::authentication::check_authenticated(&clients, &id)?;
         let space = Space::get(&self.space_id).await?;
-        let space = space.update(
-            self.name.clone(),
-            self.description.clone(),
-            self.base_permissions,
-        )
-        .await?;
+        let space = space
+            .update(
+                self.name.clone(),
+                self.description.clone(),
+                self.base_permissions,
+            )
+            .await?;
         Ok(Response::EditSpace(EditSpaceResponse { space }))
     }
 }

@@ -6,15 +6,18 @@ use crate::{
     errors::{Error, Result},
     services::{
         database::{
+            channels::Channel,
             infractions::is_banned,
             invites::{get_invites, Invite},
-            members::get_member, spaces::Space, channels::Channel,
+            members::get_member,
+            spaces::Space,
         },
-        socket::RpcClient, permissions::Permission,
+        permissions::Permission,
+        socket::RpcClient,
     },
 };
 
-use super::{Respond, Response, authentication::check_authenticated};
+use super::{authentication::check_authenticated, Respond, Response};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CreateInviteMethod {
@@ -87,7 +90,9 @@ impl Respond for DeleteInviteMethod {
         let member = get_member(user.id.clone(), self.space_id.clone()).await?;
         let permissions = member.get_permissions().await?;
         if !permissions.has_permission(Permission::ManageInvites) {
-            return Err(Error::MissingPermission { permission: Permission::ManageInvites });
+            return Err(Error::MissingPermission {
+                permission: Permission::ManageInvites,
+            });
         } else {
             let invite = Invite::get(&self.id).await?;
             invite.delete().await?;
@@ -152,7 +157,6 @@ impl Respond for GetInviteMethod {
                 Err(Error::InvalidInvite)
             }
         }
-                
     }
 }
 
@@ -201,7 +205,9 @@ impl Respond for GetInvitesMethod {
             let member = get_member(user.id.clone(), space_id.clone()).await?;
             let permissions = member.get_permissions().await?;
             if !permissions.has_permission(Permission::ManageInvites) {
-                return Err(Error::MissingPermission { permission: Permission::ManageInvites });
+                return Err(Error::MissingPermission {
+                    permission: Permission::ManageInvites,
+                });
             }
         }
         let invites = get_invites(self.channel_id.clone(), self.space_id.clone()).await?;

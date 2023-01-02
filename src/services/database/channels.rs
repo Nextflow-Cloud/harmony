@@ -1,4 +1,4 @@
-use futures_util::{StreamExt};
+use futures_util::StreamExt;
 use mongodb::{bson::doc, options::FindOptions};
 use serde::{Deserialize, Serialize};
 
@@ -31,7 +31,7 @@ pub enum Channel {
         name: String,
         space_id: String,
         scope_id: String,
-        permissions: Vec<PermissionOverride>
+        permissions: Vec<PermissionOverride>,
     },
     AnnouncementChannel {
         id: String,
@@ -76,8 +76,7 @@ impl Channel {
         after: Option<String>,
     ) -> Result<Vec<Message>> {
         match self {
-            Channel::AnnouncementChannel { id, .. }
-            | Channel::ChatChannel { id, .. } => {
+            Channel::AnnouncementChannel { id, .. } | Channel::ChatChannel { id, .. } => {
                 let database = super::get_database();
                 let limit = limit.unwrap_or(50);
                 let mut query = doc! { "channelId": id };
@@ -99,10 +98,13 @@ impl Channel {
                     .await?
                     .collect()
                     .await;
-                let messages = messages.into_iter().map(|m| m.map_err(|e| e.into())).collect::<Result<Vec<_>>>()?;
-                
+                let messages = messages
+                    .into_iter()
+                    .map(|m| m.map_err(|e| e.into()))
+                    .collect::<Result<Vec<_>>>()?;
+
                 Ok(messages)
-            },
+            }
             _ => Err(Error::NotFound),
         }
     }
@@ -114,7 +116,6 @@ pub struct PermissionOverride {
     pub allow: PermissionSet,
     pub deny: PermissionSet,
 }
-
 
 // pub async fn create_channel(
 //     channel_type: String,
@@ -171,4 +172,3 @@ pub struct PermissionOverride {
 //         .await?;
 //     Ok(channel)
 // }
-

@@ -1,10 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use super::database::{members::Member, roles::Role, spaces::Space};
 use crate::errors::Result;
-use super::database::{
-    members::Member,
-    roles::{Role}, spaces::Space,
-};
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]

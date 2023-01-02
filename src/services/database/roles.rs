@@ -76,12 +76,7 @@ impl Role {
         }
     }
 
-    pub async fn update(
-        &self,
-        name: String,
-        permissions: i64,
-        color: Color,
-    ) -> Result<Role> {
+    pub async fn update(&self, name: String, permissions: i64, color: Color) -> Result<Role> {
         let roles = super::get_database().collection::<Role>("roles");
         let role = roles
             .find_one_and_update(

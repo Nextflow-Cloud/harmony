@@ -4,14 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     errors::{Error, Result},
-    services::{
-        database::{channels::Channel
-        },
-        socket::RpcClient,
-    },
+    services::{database::channels::Channel, socket::RpcClient},
 };
 
-use super::{Respond, Response, authentication::check_authenticated};
+use super::{authentication::check_authenticated, Respond, Response};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -28,8 +24,7 @@ impl Respond for GetChannelMethod {
         let user = check_authenticated(&clients, &id)?;
         let channel = Channel::get(&self.id).await?;
         match channel {
-            Channel::PrivateChannel { .. }
-            | Channel::GroupChannel { .. } => {
+            Channel::PrivateChannel { .. } | Channel::GroupChannel { .. } => {
                         if self.space_id.is_some() {
                     return Err(Error::NotFound);
                         }

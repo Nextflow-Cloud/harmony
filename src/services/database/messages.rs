@@ -2,7 +2,7 @@ use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
 use ulid::Ulid;
 
-use crate::errors::{Result, Error};
+use crate::errors::{Error, Result};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -53,7 +53,7 @@ impl Message {
             None => Err(Error::NotFound),
         }
     }
-    
+
     pub async fn delete(&self) -> Result<Message> {
         let database = super::get_database();
         let message = database
@@ -66,4 +66,3 @@ impl Message {
         }
     }
 }
-

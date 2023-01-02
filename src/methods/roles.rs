@@ -7,7 +7,8 @@ use crate::{
     services::{
         database::{
             members::get_member,
-            roles::{Color, Role}, spaces::Space,
+            roles::{Color, Role},
+            spaces::Space,
         },
         permissions::{can_modify_role, Permission},
         socket::RpcClient,
@@ -75,14 +76,13 @@ impl Respond for EditRoleMethod {
         let member = get_member(id, self.space_id.clone()).await?;
         let can_modify = can_modify_role(&member, &role).await?;
         if !can_modify {
-            return Err(Error::MissingPermission { permission: Permission::ManageRoles })
+            return Err(Error::MissingPermission {
+                permission: Permission::ManageRoles,
+            });
         }
-        let role = role.update(
-            self.name.clone(),
-            self.permissions,
-            self.color.clone(),
-        )
-        .await?;
+        let role = role
+            .update(self.name.clone(), self.permissions, self.color.clone())
+            .await?;
         Ok(Response::EditRole(EditRoleResponse { role }))
     }
 }

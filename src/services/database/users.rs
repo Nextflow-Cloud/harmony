@@ -1,9 +1,9 @@
 use futures_util::StreamExt;
-use mongodb::{bson::{doc, self}};
+use mongodb::bson::{self, doc};
 use serde::{Deserialize, Serialize};
 
-use crate::errors::{Result, Error};
-use super::{spaces::Space, channels::Channel, invites::Invite};
+use super::{channels::Channel, invites::Invite, spaces::Space};
+use crate::errors::{Error, Result};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum Status {
@@ -110,7 +110,7 @@ impl User {
             Channel::ChatChannel { space_id, .. } => self.in_space(space_id).await,
         }
     }
-    
+
     pub async fn get(id: &String) -> Result<User> {
         let users = super::get_database().collection::<User>("users");
         let user = users
@@ -224,7 +224,7 @@ impl User {
                         "uses": &self.id,
                     }
                 },
-                None
+                None,
             )
             .await?;
         let invite = match invite {
@@ -236,7 +236,7 @@ impl User {
                 doc! {
                     "id": invite.space_id,
                 },
-                None
+                None,
             )
             .await?;
         let space = match space {
@@ -274,5 +274,4 @@ impl User {
             .await;
         Ok(channels)
     }
-    
 }

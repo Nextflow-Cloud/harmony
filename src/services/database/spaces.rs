@@ -194,7 +194,7 @@ impl Space {
             .await?;
         Ok(())
     }
-    
+
     pub async fn get_channels(&self) -> Result<Vec<Channel>> {
         let database = super::get_database();
         let channels: Vec<Channel> = database
@@ -223,5 +223,4 @@ impl Space {
             .await?;
         Ok(roles.try_collect().await?)
     }
-    
 }

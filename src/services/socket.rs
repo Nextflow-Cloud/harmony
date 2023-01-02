@@ -20,14 +20,11 @@ use x25519_dalek::{EphemeralSecret, PublicKey};
 use crate::{
     errors::Error,
     globals::HEARTBEAT_TIMEOUT,
-    methods::{
-        get_respond, Event, HelloEvent, RpcApiEvent, RpcApiMethod,
-        RpcApiResponse,
-    },
+    methods::{get_respond, Event, HelloEvent, RpcApiEvent, RpcApiMethod, RpcApiResponse},
     services::encryption::{generate, random_number},
 };
 
-use super::{environment::LISTEN_ADDRESS, database::users::User};
+use super::{database::users::User, environment::LISTEN_ADDRESS};
 
 static SERVER: OnceCell<TcpListener> = OnceCell::new();
 

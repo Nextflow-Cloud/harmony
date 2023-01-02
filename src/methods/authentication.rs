@@ -7,7 +7,7 @@ use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
 
 use crate::errors::{Error, Result};
-use crate::methods::{Response};
+use crate::methods::Response;
 use crate::services::database::users::User;
 use crate::services::encryption::{generate, random_number};
 use crate::services::environment::JWT_SECRET;
@@ -44,9 +44,12 @@ impl Respond for IdentifyMethod {
             &self.token,
             &DecodingKey::from_secret(JWT_SECRET.as_ref()),
             &validation,
-        ).map_err(|_| Error::InvalidToken)?;
+        )
+        .map_err(|_| Error::InvalidToken)?;
         let mut client = clients.get_mut(&id).unwrap();
-        let user = User::get(&token_message.claims.id).await.map_err(|_| Error::InvalidToken)?;
+        let user = User::get(&token_message.claims.id)
+            .await
+            .map_err(|_| Error::InvalidToken)?;
         client.user = Some(Arc::new(user));
         Ok(Response::Identify(IdentifyResponse { success: true }))
     }

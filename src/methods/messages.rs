@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     errors::{Error, Result},
     services::{
-        database::{messages::{Message}, channels::Channel},
+        database::{channels::Channel, messages::Message},
         socket::RpcClient,
     },
 };
@@ -32,13 +32,14 @@ impl Respond for GetMessagesMethod {
     async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
         super::authentication::check_authenticated(&clients, &id)?;
         let channel = Channel::get(&self.channel_id).await?;
-        let messages = channel.get_messages(
-            self.limit,
-            self.latest,
-            self.before.clone(),
-            self.after.clone(),
-        )
-        .await?;
+        let messages = channel
+            .get_messages(
+                self.limit,
+                self.latest,
+                self.before.clone(),
+                self.after.clone(),
+            )
+            .await?;
         Ok(Response::GetMessages(GetMessagesResponse { messages }))
     }
 }
@@ -67,12 +68,8 @@ impl Respond for SendMessageMethod {
         if trimmed.is_empty() {
             return Err(Error::MessageEmpty);
         }
-        let message = Message::create(
-            self.channel_id.clone(),
-            user.id.clone(),
-            trimmed.to_owned(),
-        )
-        .await?;
+        let message =
+            Message::create(self.channel_id.clone(), user.id.clone(), trimmed.to_owned()).await?;
         for x in clients.clone().iter_mut() {
             // TODO: Check if user is in channel
             if let Some(u) = &x.user {
