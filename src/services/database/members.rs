@@ -47,10 +47,13 @@ impl Member {
     pub async fn get_channel_permissions(&self, channel: &Channel) -> Result<PermissionSet> {
         match channel {
             Channel::PrivateChannel { .. } | Channel::GroupChannel { .. } => Err(Error::NotFound),
-            Channel::InformationChannel { id, name, space_id, scope_id } => todo!(),
             // FIXME: This is a temporary solution
-            Channel::AnnouncementChannel { id, permissions, .. } 
-            | Channel::ChatChannel { id, permissions, .. } => todo!(),
+            Channel::InformationChannel { id, permissions, .. } 
+            | Channel::AnnouncementChannel { id, permissions, .. } 
+            | Channel::ChatChannel { id, permissions, .. } => {
+                // let permissions_space = self.get_permissions().await?;
+                todo!("{} {:?}", id, permissions)
+            },
         }
     }
     
