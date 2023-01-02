@@ -48,14 +48,14 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::DatabaseError { message } => write!(f, "Database error: {}", message),
+            Error::DatabaseError { message } => write!(f, "Database error: {message}"),
             Error::NotFound => write!(f, "Not found"),
             Error::Unimplemented => write!(f, "Unimplemented"),
             Error::InvalidMethod => write!(f, "Invalid method"),
             Error::InvalidRequestId => write!(f, "Invalid request id"),
             Error::InternalError => write!(f, "Internal error"),
             Error::MissingPermission { permission } => {
-                write!(f, "Missing permission: {:?}", permission)
+                write!(f, "Missing permission: {permission:?}")
             }
             Error::InvalidToken => write!(f, "Invalid token"),
             Error::NotAuthenticated => write!(f, "Not authenticated"),

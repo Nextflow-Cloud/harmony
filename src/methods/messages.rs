@@ -96,7 +96,7 @@ impl Respond for SendMessageMethod {
                 })
                 .await
                 .unwrap_or_else(|_| Ok(()))
-                .unwrap_or_else(|e| println!("{:?}", e));
+                .unwrap_or_else(|e| println!("{e:?}"));
             }
         }
         Ok(Response::SendMessage(SendMessageResponse {
