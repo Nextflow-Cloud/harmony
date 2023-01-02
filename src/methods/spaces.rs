@@ -54,7 +54,7 @@ impl Respond for CreateSpaceMethod {
         if trimmed.len() > 32 {
             return Err(Error::NameTooLong);
         }
-        if trimmed.len() < 1 {
+        if trimmed.is_empty() {
             return Err(Error::NameEmpty);
         }
         let space = Space::create(

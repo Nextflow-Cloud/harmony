@@ -33,12 +33,12 @@ impl Space {
         let space = Space {
             id: Ulid::new().to_string(),
             name,
-            description: description.unwrap_or("".to_string()),
+            description: description.unwrap_or_default(),
             channels: Vec::new(),
             members: Vec::new(),
             roles: Vec::new(),
             owner,
-            scope_id: scope_id.unwrap_or("global".to_owned()),
+            scope_id: scope_id.unwrap_or_else(|| "global".to_owned()),
             base_permissions: 0x16,
         };
         spaces.insert_one(space.clone(), None).await?;

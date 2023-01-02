@@ -129,7 +129,7 @@ impl User {
 
     pub async fn add_friend(&self, friend_id: &String) -> Result<()> {
         let users = super::get_database().collection::<User>("users");
-        User::get(&friend_id).await?;
+        User::get(friend_id).await?;
         let affinity = self.affinities.iter().find(|a| &a.id == friend_id);
         if let Some(affinity) = affinity {
             match affinity.relationship {

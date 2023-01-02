@@ -111,6 +111,12 @@ impl PermissionSet {
     }
 }
 
+impl Default for PermissionSet {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl From<i64> for PermissionSet {
     fn from(permissions: i64) -> Self {
         Self { permissions }
@@ -125,7 +131,7 @@ pub async fn can_modify_role(member: &Member, role: &Role) -> Result<bool> {
         return Ok(true);
     }
     let member_roles = member.roles.clone();
-    let futures = member_roles.iter().map(|role| Role::get(role));
+    let futures = member_roles.iter().map(Role::get);
     let mut roles = futures_util::future::try_join_all(futures)
         .await
         .expect("Unexpected error: failed to get roles");

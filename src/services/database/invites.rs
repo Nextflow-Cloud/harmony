@@ -43,7 +43,7 @@ impl Invite {
             uses: Vec::new(),
             authorized_users,
             space_id,
-            scope_id: scope_id.unwrap_or("global".to_owned()),
+            scope_id: scope_id.unwrap_or_else(|| "global".to_owned()),
         };
         let database = super::get_database();
         database

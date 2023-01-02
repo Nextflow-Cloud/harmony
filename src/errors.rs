@@ -47,7 +47,31 @@ pub enum Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_string())
+        match self {
+            Error::DatabaseError { message } => write!(f, "Database error: {}", message),
+            Error::NotFound => write!(f, "Not found"),
+            Error::Unimplemented => write!(f, "Unimplemented"),
+            Error::InvalidMethod => write!(f, "Invalid method"),
+            Error::InvalidRequestId => write!(f, "Invalid request id"),
+            Error::InternalError => write!(f, "Internal error"),
+            Error::MissingPermission { permission } => {
+                write!(f, "Missing permission: {:?}", permission)
+            }
+            Error::InvalidToken => write!(f, "Invalid token"),
+            Error::NotAuthenticated => write!(f, "Not authenticated"),
+            Error::MessageTooLong => write!(f, "Message too long"),
+            Error::MessageEmpty => write!(f, "Message empty"),
+            Error::NameTooLong => write!(f, "Name too long"),
+            Error::NameEmpty => write!(f, "Name empty"),
+            Error::InvalidInvite => write!(f, "Invalid invite"),
+            Error::InviteExpired => write!(f, "Invite expired"),
+            Error::InviteAlreadyUsed => write!(f, "Invite already used"),
+            Error::ChannelFull => write!(f, "Channel full"),
+            Error::Blocked => write!(f, "Blocked"),
+            Error::AlreadyFriends => write!(f, "Already friends"),
+            Error::AlreadyRequested => write!(f, "Already requested"),
+            Error::NotFriends => write!(f, "Not friends"),
+        }
     }
 }
 

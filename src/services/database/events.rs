@@ -55,6 +55,12 @@ impl RecurringDays {
     }
 }
 
+impl Default for RecurringDays {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Serialize for RecurringDays {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where

@@ -64,7 +64,7 @@ impl Respond for SendMessageMethod {
         if trimmed.len() > 4096 {
             return Err(Error::MessageTooLong);
         }
-        if trimmed.len() < 1 {
+        if trimmed.is_empty() {
             return Err(Error::MessageEmpty);
         }
         let message = Message::create(

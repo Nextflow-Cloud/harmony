@@ -122,7 +122,7 @@ impl Respond for GetInviteMethod {
                     banned,
                     authorized: invite
                         .authorized_users
-                        .unwrap_or(vec![user.id.clone()])
+                        .unwrap_or_else(|| vec![user.id.clone()])
                         .contains(&user.id),
                     member_count: space.members.len() as i32,
                 },
@@ -143,7 +143,7 @@ impl Respond for GetInviteMethod {
                         inviter_id: invite.creator,
                         authorized: invite
                             .authorized_users
-                            .unwrap_or(vec![user.id.clone()])
+                            .unwrap_or_else(|| vec![user.id.clone()])
                             .contains(&user.id),
                         member_count: members.len() as i32,
                     },

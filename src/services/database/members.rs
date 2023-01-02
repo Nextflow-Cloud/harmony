@@ -21,7 +21,7 @@ impl Member {
         } else {
             let mut calculated_permissions = PermissionSet::from(space.base_permissions);
             let roles_sorted = self.roles.clone();
-            let futures = roles_sorted.iter().map(|role| Role::get(role));
+            let futures = roles_sorted.iter().map(Role::get);
             let mut roles = futures_util::future::try_join_all(futures)
                 .await?;
             roles.sort_by(|a, b| a.position.cmp(&b.position));
@@ -34,8 +34,8 @@ impl Member {
                     break;
                 }
                 for permission in &default {
-                    if !role_permissions.has_permission(permission.clone()) {
-                        calculated_permissions.remove_permission(permission.clone());
+                    if !role_permissions.has_permission(*permission) {
+                        calculated_permissions.remove_permission(*permission);
                     }
                 }
                 calculated_permissions.combine(role_permissions);
@@ -91,6 +91,6 @@ pub async fn get_member(member_id: String, space_id: String) -> Result<Member> {
             None,
         )
         .await?
-        .ok_or_else(|| crate::errors::Error::NotFound)?;
+        .ok_or(crate::errors::Error::NotFound)?;
     Ok(member)
 }

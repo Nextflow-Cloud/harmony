@@ -46,7 +46,7 @@ impl Respond for GetChannelMethod {
                             if request_space_id != space_id {
                         return Err(Error::NotFound);
                             }
-                    let user_in_space = user.in_space(&space_id).await?;
+                    let user_in_space = user.in_space(space_id).await?;
                                     if !user_in_space {
                         return Err(Error::NotFound);
                                     }
