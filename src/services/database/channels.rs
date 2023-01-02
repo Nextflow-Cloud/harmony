@@ -1,5 +1,5 @@
-use futures_util::TryStreamExt;
-use mongodb::bson::doc;
+use futures_util::{StreamExt};
+use mongodb::{bson::doc, options::FindOptions};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -7,7 +7,7 @@ use crate::{
     services::permissions::PermissionSet,
 };
 
-use super::spaces::in_space;
+use super::messages::Message;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "type")]
@@ -50,20 +50,14 @@ pub enum Channel {
     },
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct PermissionOverride {
-    pub id: String,
-    pub allow: PermissionSet,
-    pub deny: PermissionSet,
-}
-
-pub async fn get_channel(channel_id: String) -> Result<Channel> {
+impl Channel {
+    pub async fn get(id: &String) -> Result<Channel> {
     let database = super::get_database();
     let channel = database
         .collection::<Channel>("channels")
         .find_one(
             doc! {
-                "id": channel_id,
+                    "id": id,
             },
             None,
         )
@@ -73,45 +67,49 @@ pub async fn get_channel(channel_id: String) -> Result<Channel> {
         None => Err(Error::NotFound),
     }
 }
-
-pub async fn get_channels(space_id: String) -> Result<Vec<Channel>> {
+    pub async fn get_messages(
+        &self,
+        limit: Option<i64>,
+        latest: Option<bool>,
+        before: Option<String>,
+        after: Option<String>,
+    ) -> Result<Vec<Message>> {
+        match self {
+            Channel::AnnouncementChannel { id, .. }
+            | Channel::ChatChannel { id, .. } => {
     let database = super::get_database();
-    let channels: Vec<Channel> = database
-        .collection::<Channel>("channels")
-        .find(
-            doc! {
-                "spaceId": space_id,
-            },
-            None,
-        )
-        .await?
-        .try_collect()
-        .await?;
-    Ok(channels)
+                let limit = limit.unwrap_or(50);
+                let mut query = doc! { "channelId": id };
+                if let Some(before) = before {
+                    query.insert("id", doc! { "$lt": before });
 }
-pub async fn in_channel(user_id: String, channel_id: String) -> Result<bool> {
-    let channel = get_channel(channel_id).await?;
-    match channel {
-        Channel::PrivateChannel {
-            initiator_id,
-            target_id,
-            ..
-        } => {
-            if initiator_id == user_id || target_id == user_id {
-                Ok(true)
-            } else {
-                Ok(false)
+                if let Some(after) = after {
+                    query.insert("id", doc! { "$gt": after });
+            }
+                let options = FindOptions::builder()
+                    .sort(doc! {
+                        "id": if latest.unwrap_or(false) { -1 } else { 1 }
+                    })
+                    .limit(limit)
+                    .build();
+                let messages: Vec<_> = database
+                    .collection::<Message>("messages")
+                    .find(query, options)
+                    .await?
+                    .collect()
+                    .await;
+                let messages = messages.into_iter().map(|m| m.map_err(|e| e.into())).collect::<Result<Vec<_>>>()?;
+                
+                Ok(messages)
+            },
+            _ => Err(Error::NotFound),
             }
         }
-        Channel::GroupChannel { members, .. } => {
-            if members.contains(&user_id) {
-                Ok(true)
-            } else {
-                Ok(false)
-            }
-        }
-        Channel::InformationChannel { space_id, .. } => in_space(user_id, space_id).await,
-        Channel::AnnouncementChannel { space_id, .. } => in_space(user_id, space_id).await,
-        Channel::ChatChannel { space_id, .. } => in_space(user_id, space_id).await,
     }
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PermissionOverride {
+    pub id: String,
+    pub allow: PermissionSet,
+    pub deny: PermissionSet,
 }
