@@ -55,7 +55,7 @@ impl Respond for IdentifyMethod {
         let user = User::get(&token_message.claims.id)
             .await;
         let user = if let Err(Error::NotFound) = user {
-            User::create(&token_message.claims.id).await?
+            User::create(token_message.claims.id).await?
         } else {
             user?
         };

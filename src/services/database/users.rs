@@ -126,10 +126,10 @@ impl User {
         }
     }
 
-    pub async fn create(id: &String) -> Result<User> {
+    pub async fn create(id: String) -> Result<User> {
         let users = super::get_database().collection::<User>("users");
         let user = User {
-            id: id.clone(),
+            id,
             profile_banner: None,
             profile_description: String::new(),
             affinities: Vec::new(),
