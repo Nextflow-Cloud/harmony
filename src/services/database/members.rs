@@ -1,13 +1,64 @@
 use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
 
-use crate::errors::Result;
+use crate::{errors::{Result, Error}, services::permissions::{PermissionSet, Permission}};
+
+use super::{spaces::Space, roles::Role, channels::Channel};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Member {
     pub id: String,
     pub space_id: String,
     pub roles: Vec<String>,
+}
+
+impl Member {
+    pub async fn get_permissions(&self) -> Result<PermissionSet> {
+        let space = Space::get(&self.space_id)
+            .await?;
+        if space.owner == self.id {
+            Ok(PermissionSet::all())
+        } else {
+            let mut calculated_permissions = PermissionSet::from(space.base_permissions);
+            let roles_sorted = self.roles.clone();
+            let futures = roles_sorted.iter().map(|role| Role::get(role));
+            let mut roles = futures_util::future::try_join_all(futures)
+                .await?;
+            roles.sort_by(|a, b| a.position.cmp(&b.position));
+            roles.reverse();
+            let default = calculated_permissions.to_vec();
+            for role in roles {
+                let role_permissions: PermissionSet = role.permissions.into();
+                if role_permissions.has_permission(Permission::Administrator) {
+                    calculated_permissions = PermissionSet::all();
+                    break;
+                }
+                for permission in &default {
+                    if !role_permissions.has_permission(permission.clone()) {
+                        calculated_permissions.remove_permission(permission.clone());
+                    }
+                }
+                calculated_permissions.combine(role_permissions);
+            }
+            Ok(calculated_permissions)
+        }
+    }
+
+    pub async fn get_channel_permissions(&self, channel: &Channel) -> Result<PermissionSet> {
+        match channel {
+            Channel::PrivateChannel { .. } | Channel::GroupChannel { .. } => Err(Error::NotFound),
+            Channel::InformationChannel { id, name, space_id, scope_id } => todo!(),
+            // FIXME: This is a temporary solution
+            Channel::AnnouncementChannel { id, permissions, .. } 
+            | Channel::ChatChannel { id, permissions, .. } => todo!(),
+        }
+    }
+    
+    pub async fn is_owner(&self) -> Result<bool> {
+        let space = Space::get(&self.space_id)
+            .await?;
+        Ok(space.owner == self.id)
+    }
 }
 
 pub async fn delete_member(member_id: String, space_id: String) -> Result<()> {
