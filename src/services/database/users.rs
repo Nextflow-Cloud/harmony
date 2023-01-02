@@ -38,15 +38,14 @@ pub struct Affinity {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct User {
     pub id: String,
-    pub profile_banner: String, // TODO: Make use of file handling
+    pub profile_banner: Option<String>, // TODO: Make use of file handling
     pub profile_description: String,
-    pub presence: Presence,
-    pub online: bool,
-    // usernames on Nextflow are unique
-    // can set a display name for better visibility
-    pub platform_administrator: bool, // TODO: should be implemented globally
-    // on SSO system user data
     pub affinities: Vec<Affinity>,
+    
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub online: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub presence: Option<Presence>,
 }
 
 impl User {
@@ -125,6 +124,20 @@ impl User {
             Some(user) => Ok(user),
             None => Err(Error::NotFound),
         }
+    }
+
+    pub async fn create(id: &String) -> Result<User> {
+        let users = super::get_database().collection::<User>("users");
+        let user = User {
+            id: id.clone(),
+            profile_banner: None,
+            profile_description: String::new(),
+            affinities: Vec::new(),
+            online: None,
+            presence: None,
+        };
+        users.insert_one(user.clone(), None).await?;
+        Ok(user)
     }
 
     pub async fn add_friend(&self, friend_id: &String) -> Result<()> {

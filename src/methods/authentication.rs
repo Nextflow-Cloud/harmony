@@ -53,8 +53,12 @@ impl Respond for IdentifyMethod {
         }
         let mut client = clients.get_mut(&id).unwrap();
         let user = User::get(&token_message.claims.id)
-            .await
-            .map_err(|_| Error::InvalidToken)?;
+            .await;
+        let user = if let Err(Error::NotFound) = user {
+            User::create(&token_message.claims.id).await?
+        } else {
+            user?
+        };
         client.user = Some(Arc::new(user));
         Ok(Response::Identify(IdentifyResponse { success: true }))
     }
