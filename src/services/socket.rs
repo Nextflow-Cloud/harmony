@@ -21,32 +21,23 @@ use crate::{
     errors::Error,
     globals::HEARTBEAT_TIMEOUT,
     methods::{
-        get_respond, ErrorResponse, Event, HelloEvent, Response, RpcApiEvent, RpcApiMethod,
+        get_respond, Event, HelloEvent, RpcApiEvent, RpcApiMethod,
         RpcApiResponse,
     },
     services::encryption::{generate, random_number},
 };
 
-use super::environment::LISTEN_ADDRESS;
+use super::{environment::LISTEN_ADDRESS, database::users::User};
 
 static SERVER: OnceCell<TcpListener> = OnceCell::new();
 
 #[derive(Clone)]
 pub struct RpcClient {
-    pub(crate) id: String,
-    pub(crate) socket: Arc<Mutex<SplitSink<WebSocketStream<TcpStream>, Message>>>,
-    pub(crate) user_id: Option<String>,
-    pub(crate) request_ids: Arc<Mutex<Vec<String>>>,
+    pub id: String,
+    pub socket: Arc<Mutex<SplitSink<WebSocketStream<TcpStream>, Message>>>,
+    pub user: Option<Arc<User>>,
+    pub request_ids: Arc<Mutex<Vec<String>>>,
     pub heartbeat_tx: Arc<Mutex<Sender<()>>>,
-}
-
-impl RpcClient {
-    pub fn get_user_id(&self) -> String {
-        match &self.user_id {
-            Some(v) => v.to_string(),
-            None => "".to_string(),
-        }
-    }
 }
 
 pub async fn start_server() {
@@ -112,12 +103,14 @@ async fn connection_loop() {
                 if let Some(client) = clients_moved.get(&id_moved) {
                     let mut socket = client.socket.lock().await;
                     socket.close().await.expect("Failed to close socket");
+                    drop(socket);
+                    clients_moved.remove(&id_moved);
                 }
             });
             let client = RpcClient {
                 id: id.clone(),
                 socket: socket_arc.clone(),
-                user_id: None,
+                user: None,
                 request_ids: Arc::new(Mutex::new(request_ids)),
                 heartbeat_tx: Arc::new(Mutex::new(tx)),
             };
@@ -137,11 +130,13 @@ async fn connection_loop() {
                                 if request_ids.contains(&request_id) {
                                     request_ids.retain(|x| x != &request_id);
                                 } else {
-                                    let error = Response::Error(ErrorResponse {
-                                        error: Error::InvalidRequestId,
-                                    });
+                                    let return_value = RpcApiResponse {
+                                        id: None,
+                                        response: None,
+                                        error: Some(Error::InvalidRequestId),
+                                    };
                                     let mut value_buffer = Vec::new();
-                                    error
+                                    return_value
                                         .serialize(
                                             &mut Serializer::new(&mut value_buffer)
                                                 .with_struct_map(),
@@ -157,11 +152,21 @@ async fn connection_loop() {
                                 let dispatch = get_respond(r.method)
                                     .respond(clients.clone(), id.clone())
                                     .await;
+                                let return_value: RpcApiResponse;
+                                if let Ok(dispatch) = dispatch {
+                                    return_value = RpcApiResponse {
+                                        id: None,
+                                        response: Some(dispatch),
+                                        error: None,
+                                    };
+                                } else {
+                                    return_value = RpcApiResponse {
+                                        id: None,
+                                        response: None,
+                                        error: Some(dispatch.unwrap_err()),
+                                    };
+                                }
                                 let mut value_buffer = Vec::new();
-                                let return_value = RpcApiResponse {
-                                    id: Some(request_id),
-                                    response: dispatch,
-                                };
                                 return_value
                                     .serialize(
                                         &mut Serializer::new(&mut value_buffer).with_struct_map(),
@@ -171,11 +176,13 @@ async fn connection_loop() {
                                 write.send(Message::Binary(value_buffer)).await.unwrap();
                                 drop(write);
                             } else {
-                                let error = Response::Error(ErrorResponse {
-                                    error: Error::InvalidRequestId,
-                                });
+                                let return_value = RpcApiResponse {
+                                    id: None,
+                                    response: None,
+                                    error: Some(Error::InvalidRequestId),
+                                };
                                 let mut value_buffer = Vec::new();
-                                error
+                                return_value
                                     .serialize(
                                         &mut Serializer::new(&mut value_buffer).with_struct_map(),
                                     )
@@ -185,13 +192,11 @@ async fn connection_loop() {
                                 drop(write);
                             }
                         } else {
-                            let error = Response::Error(ErrorResponse {
-                                error: Error::InvalidMethod,
-                            });
                             let mut value_buffer = Vec::new();
                             let return_value = RpcApiResponse {
                                 id: None,
-                                response: error,
+                                response: None,
+                                error: Some(Error::InvalidMethod),
                             };
                             return_value
                                 .serialize(
@@ -213,15 +218,15 @@ async fn connection_loop() {
                         println!("Received close");
                         let mut write = socket_arc.lock().await;
                         write.close().await.unwrap();
-                        clients.remove(&id.clone());
                         drop(write);
+                        clients.remove(&id.clone());
                     }
                     _ => {
                         println!("Received unknown message");
                         let mut write = socket_arc.lock().await;
                         write.close().await.unwrap();
-                        clients.remove(&id.clone());
                         drop(write);
+                        clients.remove(&id.clone());
                     }
                 }
             }
