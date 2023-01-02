@@ -19,6 +19,8 @@ use super::Respond;
 struct UserJwt {
     // TODO: Find the other properties
     id: String,
+    issued_at: u128,
+    expires_at: u128,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -39,13 +41,16 @@ impl Respond for IdentifyMethod {
         let mut validation = Validation::new(Algorithm::HS256);
         validation.required_spec_claims = HashSet::new();
         validation.validate_exp = false;
-        // TODO: token expiration
         let token_message = decode::<UserJwt>(
             &self.token,
             &DecodingKey::from_secret(JWT_SECRET.as_ref()),
             &validation,
         )
         .map_err(|_| Error::InvalidToken)?;
+        let time = chrono::Utc::now().timestamp_millis() as u128;
+        if time > token_message.claims.expires_at {
+            return Err(Error::InvalidToken);
+        }
         let mut client = clients.get_mut(&id).unwrap();
         let user = User::get(&token_message.claims.id)
             .await
