@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
@@ -20,8 +22,12 @@ pub struct GetChannelMethod {
 
 #[async_trait]
 impl Respond for GetChannelMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        let user = check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        let user = check_authenticated(clients, &id)?;
         let channel = Channel::get(&self.id).await?;
         match channel {
             Channel::PrivateChannel { .. } | Channel::GroupChannel { .. } => {
@@ -69,8 +75,12 @@ pub struct GetChannelsMethod {
 
 #[async_trait]
 impl Respond for GetChannelsMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        let user = check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        let user = check_authenticated(clients, &id)?;
         let channels = user.get_channels().await?;
         Ok(Response::GetChannels(GetChannelsResponse { channels }))
     }

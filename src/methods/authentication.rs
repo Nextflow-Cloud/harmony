@@ -35,7 +35,11 @@ pub struct IdentifyMethod {
 // (e.g. SSO system)
 #[async_trait]
 impl Respond for IdentifyMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
         println!("Public key: {:?}", self.public_key);
         println!("Token: {:?}", self.token);
         let mut validation = Validation::new(Algorithm::HS256);
@@ -52,8 +56,7 @@ impl Respond for IdentifyMethod {
             return Err(Error::InvalidToken);
         }
         let mut client = clients.get_mut(&id).unwrap();
-        let user = User::get(&token_message.claims.id)
-            .await;
+        let user = User::get(&token_message.claims.id).await;
         let user = if let Err(Error::NotFound) = user {
             User::create(token_message.claims.id).await?
         } else {
@@ -76,7 +79,11 @@ pub struct HeartbeatMethod {}
 
 #[async_trait]
 impl Respond for HeartbeatMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
         let client = clients.get(&id).unwrap();
         let tx = client.heartbeat_tx.lock().await;
         tx.send(()).unwrap();
@@ -96,9 +103,12 @@ pub struct GetIdMethod {}
 
 #[async_trait]
 impl Respond for GetIdMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        let client = clients.get(&id).unwrap();
-        let mut request_ids = client.request_ids.lock().await;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        let mut client = clients.get_mut(&id).unwrap();
         let mut new_request_ids = Vec::new();
         for _ in 0..20 {
             let id = generate(
@@ -109,7 +119,7 @@ impl Respond for GetIdMethod {
                 ],
                 10,
             );
-            request_ids.push(id.clone());
+            client.request_ids.push(id.clone());
             new_request_ids.push(id);
         }
         Ok(Response::GetId(GetIdResponse {
@@ -125,7 +135,7 @@ pub struct GetIdResponse {
 }
 
 pub fn check_authenticated<'a>(
-    clients: &'a DashMap<String, RpcClient>,
+    clients: Arc<DashMap<String, RpcClient>>,
     id: &'a str,
 ) -> Result<Arc<User>> {
     let client = clients.get(id).expect("Failed to get client");

@@ -33,7 +33,7 @@ pub struct RpcClient {
     pub id: String,
     pub socket: Arc<Mutex<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     pub user: Option<Arc<User>>,
-    pub request_ids: Arc<Mutex<Vec<String>>>,
+    pub request_ids: Vec<String>,
     pub heartbeat_tx: Arc<Mutex<Sender<()>>>,
 }
 
@@ -44,7 +44,7 @@ pub async fn start_server() {
 }
 
 async fn connection_loop() {
-    let clients: DashMap<String, RpcClient> = DashMap::new();
+    let clients: Arc<DashMap<String, RpcClient>> = Arc::new(DashMap::new());
     let mut incoming = SERVER.get().expect("Failed to get server").incoming();
     while let Some(stream) = incoming.next().await {
         let clients = clients.clone();
@@ -84,7 +84,6 @@ async fn connection_loop() {
             };
             val.serialize(&mut Serializer::new(&mut buf).with_struct_map())
                 .unwrap();
-            // println!("test: {:?}", buf);
             let mut write = socket_arc.lock().await;
             write.send(Message::Binary(buf)).await.unwrap();
             drop(write);
@@ -108,7 +107,7 @@ async fn connection_loop() {
                 id: id.clone(),
                 socket: socket_arc.clone(),
                 user: None,
-                request_ids: Arc::new(Mutex::new(request_ids)),
+                request_ids,
                 heartbeat_tx: Arc::new(Mutex::new(tx)),
             };
             clients.insert(id.clone(), client);
@@ -122,10 +121,9 @@ async fn connection_loop() {
                         if let Ok(r) = result {
                             println!("Received: {:?}", r.method);
                             if let Some(request_id) = r.id {
-                                let client = clients.get(&id).unwrap();
-                                let mut request_ids = client.request_ids.lock().await;
-                                if request_ids.contains(&request_id) {
-                                    request_ids.retain(|x| x != &request_id);
+                                let mut client = clients.get_mut(&id).unwrap();
+                                if client.request_ids.contains(&request_id) {
+                                    client.request_ids.retain(|x| x != &request_id);
                                 } else {
                                     let return_value = RpcApiResponse {
                                         id: None,
@@ -144,7 +142,6 @@ async fn connection_loop() {
                                     drop(write);
                                     return;
                                 }
-                                drop(request_ids);
                                 drop(client);
                                 let dispatch = get_respond(r.method)
                                     .respond(clients.clone(), id.clone())

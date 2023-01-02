@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
@@ -31,8 +33,12 @@ pub struct CreateInviteMethod {
 
 #[async_trait]
 impl Respond for CreateInviteMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        let user = check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        let user = check_authenticated(clients, &id)?;
         let invite = Invite::create(
             self.channel_id.clone(),
             user.id.clone(),
@@ -60,7 +66,7 @@ pub struct CreateInviteResponse {
 
 // #[async_trait]
 // impl Respond for UpdateInviteMethod {
-//     async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
+//     async fn respond(&self, clients: Arc<DashMap<String, RpcClient>>, id: String) -> Response {
 //         let client = clients.get(&id.clone()).unwrap();
 //         let member = get_member(id).await;
 //         match member {
@@ -85,8 +91,12 @@ pub struct DeleteInviteMethod {
 
 #[async_trait]
 impl Respond for DeleteInviteMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        let user = check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        let user = check_authenticated(clients, &id)?;
         let member = get_member(user.id.clone(), self.space_id.clone()).await?;
         let permissions = member.get_permissions().await?;
         if !permissions.has_permission(Permission::ManageInvites) {
@@ -113,8 +123,12 @@ pub struct GetInviteMethod {
 
 #[async_trait]
 impl Respond for GetInviteMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        let user = check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        let user = check_authenticated(clients, &id)?;
         let invite = Invite::get(&self.code).await?;
         if let Some(space_id) = invite.space_id {
             let space = Space::get(&space_id).await?;
@@ -199,8 +213,12 @@ pub struct GetInvitesMethod {
 
 #[async_trait]
 impl Respond for GetInvitesMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        let user = check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        let user = check_authenticated(clients, &id)?;
         if let Some(space_id) = &self.space_id {
             let member = get_member(user.id.clone(), space_id.clone()).await?;
             let permissions = member.get_permissions().await?;

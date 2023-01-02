@@ -143,33 +143,3 @@ pub async fn can_modify_role(member: &Member, role: &Role) -> Result<bool> {
     }
     Ok(false)
 }
-
-// #[proc_macro_attribute]
-// pub fn required_permission(attr: TokenStream, item: TokenStream) -> TokenStream {
-//     let attr = parse_macro_input!(attr as AttributeArgs);
-//     let item = parse_macro_input!(item as ItemFn);
-//     let mut permissions = Vec::new();
-//     for arg in attr {
-//         if let NestedMeta::Meta(Meta::Path(path)) = arg {
-//             let ident = path.get_ident().expect("Unexpected error: failed to get ident");
-//             let permission = match ident.to_string().as_str() {
-//                 "Administrator" => Permission::Administrator,
-//                 "ViewChannel" => Permission::ViewChannel,
-//                 "SendMessages" => Permission::SendMessages,
-//                 "DeleteMessages" => Permission::DeleteMessages,
-//                 "CreateInvite" => Permission::CreateInvite,
-//                 "SuspendMembers" => Permission::SuspendMembers,
-//                 "KickMembers" => Permission::KickMembers,
-//                 "BanMembers" => Permission::BanMembers,
-//                 "ManageChannels" => Permission::ManageChannels,
-//                 "ManageInvites" => Permission::ManageInvites,
-//                 "ManageRoles" => Permission::ManageRoles,
-//                 "ManageSpace" => Permission::ManageSpace,
-//                 _ => panic!("Unexpected error: invalid permission"),
-//             };
-//             permissions.push(permission);
-//         }
-//     }
-//     // Append a permission check to the original function
-
-// }

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
@@ -28,8 +30,12 @@ pub struct CreateRoleMethod {
 
 #[async_trait]
 impl Respond for CreateRoleMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        super::authentication::check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        super::authentication::check_authenticated(clients, &id)?;
         let space = Space::get(&self.space_id).await?;
         let role = Role::create(
             &space,
@@ -62,8 +68,12 @@ pub struct EditRoleMethod {
 
 #[async_trait]
 impl Respond for EditRoleMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        super::authentication::check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        super::authentication::check_authenticated(clients, &id)?;
         let role = Role::get(&self.id).await?;
         if role.space_id != self.space_id {
             return Err(Error::NotFound);
@@ -101,8 +111,12 @@ pub struct DeleteRoleMethod {
 
 #[async_trait]
 impl Respond for DeleteRoleMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        super::authentication::check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        super::authentication::check_authenticated(clients, &id)?;
         let role = Role::get(&self.id).await?;
         role.delete().await?;
         Ok(Response::DeleteRole(DeleteRoleResponse {

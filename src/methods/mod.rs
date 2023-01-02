@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
@@ -12,7 +14,7 @@ use self::{
         GetIdMethod, GetIdResponse, HeartbeatMethod, HeartbeatResponse, IdentifyMethod,
         IdentifyResponse,
     },
-    channels::{GetChannelMethod, GetChannelResponse, GetChannelsResponse, GetChannelsMethod},
+    channels::{GetChannelMethod, GetChannelResponse, GetChannelsMethod, GetChannelsResponse},
     invites::{
         CreateInviteMethod, CreateInviteResponse, DeleteInviteMethod, DeleteInviteResponse,
         GetInviteMethod, GetInviteResponse, GetInvitesMethod, GetInvitesResponse,
@@ -83,7 +85,11 @@ pub enum Method {
 
 #[async_trait]
 pub trait Respond {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response>;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response>;
 }
 
 pub fn get_respond(m: Method) -> Box<dyn Respond + Send + Sync> {

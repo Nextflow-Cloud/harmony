@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use async_std::future;
 use async_trait::async_trait;
@@ -29,8 +29,12 @@ pub struct GetMessagesMethod {
 
 #[async_trait]
 impl Respond for GetMessagesMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        super::authentication::check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        super::authentication::check_authenticated(clients, &id)?;
         let channel = Channel::get(&self.channel_id).await?;
         let messages = channel
             .get_messages(
@@ -59,8 +63,12 @@ pub struct SendMessageMethod {
 
 #[async_trait]
 impl Respond for SendMessageMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        let user = super::authentication::check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        let user = super::authentication::check_authenticated(clients.clone(), &id)?;
         let trimmed = self.content.trim();
         if trimmed.len() > 4096 {
             return Err(Error::MessageTooLong);

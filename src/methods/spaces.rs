@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
@@ -17,8 +19,12 @@ pub struct GetSpaceMethod {
 
 #[async_trait]
 impl Respond for GetSpaceMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        let user = super::authentication::check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        let user = super::authentication::check_authenticated(clients, &id)?;
         let space = Space::get(&self.space_id).await?;
         let user_in_space = user.in_space(&self.space_id).await?;
         if !user_in_space {
@@ -45,8 +51,12 @@ pub struct CreateSpaceMethod {
 
 #[async_trait]
 impl Respond for CreateSpaceMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        super::authentication::check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        super::authentication::check_authenticated(clients, &id)?;
         let trimmed = self.name.trim();
         if trimmed.len() > 32 {
             return Err(Error::NameTooLong);
@@ -79,8 +89,12 @@ pub struct JoinSpaceMethod {
 
 #[async_trait]
 impl Respond for JoinSpaceMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        let user = super::authentication::check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        let user = super::authentication::check_authenticated(clients, &id)?;
         let space = user.accept_invite(&self.code).await?;
         space.add_member(&id).await?;
         Ok(Response::JoinSpace(JoinSpaceResponse { space }))
@@ -101,8 +115,12 @@ pub struct LeaveSpaceMethod {
 
 #[async_trait]
 impl Respond for LeaveSpaceMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        let user = super::authentication::check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        let user = super::authentication::check_authenticated(clients, &id)?;
         let user_in_space = user.in_space(&self.space_id).await?;
         if !user_in_space {
             return Err(Error::NotFound);
@@ -127,8 +145,12 @@ pub struct GetSpacesMethod {}
 
 #[async_trait]
 impl Respond for GetSpacesMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        let user = super::authentication::check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        let user = super::authentication::check_authenticated(clients, &id)?;
         let spaces = user.get_spaces().await?;
         Ok(Response::GetSpaces(GetSpacesResponse { spaces }))
     }
@@ -153,8 +175,12 @@ pub struct EditSpaceMethod {
 // TODO: logger
 #[async_trait]
 impl Respond for EditSpaceMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        super::authentication::check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        super::authentication::check_authenticated(clients, &id)?;
         let space = Space::get(&self.space_id).await?;
         let space = space
             .update(
@@ -181,8 +207,12 @@ pub struct DeleteSpaceMethod {
 
 #[async_trait]
 impl Respond for DeleteSpaceMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
-        super::authentication::check_authenticated(&clients, &id)?;
+    async fn respond(
+        &self,
+        clients: Arc<DashMap<String, RpcClient>>,
+        id: String,
+    ) -> Result<Response> {
+        super::authentication::check_authenticated(clients, &id)?;
         let space = Space::get(&self.space_id).await?;
         space.delete().await?;
         Ok(Response::DeleteSpace(DeleteSpaceResponse {
