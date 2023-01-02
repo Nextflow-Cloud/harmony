@@ -3,14 +3,14 @@ use dashmap::DashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    errors::Error,
+    errors::{Error, Result},
     services::{
-        database::spaces::{delete_space, update_space, Space},
+        database::spaces::{Space},
         socket::RpcClient,
     },
 };
 
-use super::{ErrorResponse, Respond, Response};
+use super::{Respond, Response};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -20,30 +20,14 @@ pub struct GetSpaceMethod {
 
 #[async_trait]
 impl Respond for GetSpaceMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
-        let client = clients.get(&id).unwrap();
-        let space = crate::services::database::spaces::get_space(self.space_id.clone()).await;
-        match space {
-            Ok(space) => {
-                let user_in_space = crate::services::database::spaces::in_space(
-                    client.get_user_id(),
-                    self.space_id.clone(),
-                )
-                .await;
-                match user_in_space {
-                    Ok(user_in_space) => {
-                        if !user_in_space {
-                            return Response::Error(ErrorResponse {
-                                error: Error::NotFound,
-                            });
-                        }
-                        Response::GetSpace(GetSpaceResponse { space })
-                    }
-                    Err(error) => Response::Error(ErrorResponse { error }),
-                }
-            }
-            Err(error) => Response::Error(ErrorResponse { error }),
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
+        let user = super::authentication::check_authenticated(&clients, &id)?;
+        let space = Space::get(&self.space_id).await?;
+        let user_in_space = user.in_space(&self.space_id).await?;
+        if !user_in_space {
+            return Err(Error::NotFound);
         }
+        Ok(Response::GetSpace(GetSpaceResponse { space }))
     }
 }
 
@@ -64,30 +48,23 @@ pub struct CreateSpaceMethod {
 
 #[async_trait]
 impl Respond for CreateSpaceMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
+        super::authentication::check_authenticated(&clients, &id)?;
         let trimmed = self.name.trim();
         if trimmed.len() > 32 {
-            return Response::Error(ErrorResponse {
-                error: Error::NameTooLong,
-            });
+            return Err(Error::NameTooLong);
         }
         if trimmed.len() < 1 {
-            return Response::Error(ErrorResponse {
-                error: Error::NameEmpty,
-            });
+            return Err(Error::NameEmpty);
         }
-        let client = clients.get(&id).unwrap();
-        let space = crate::services::database::spaces::create_space(
+        let space = Space::create(
             self.name.clone(),
             self.description.clone(),
-            client.get_user_id(),
+            id,
             self.scope.clone(),
         )
-        .await;
-        match space {
-            Ok(space) => Response::CreateSpace(CreateSpaceResponse { space }),
-            Err(e) => Response::Error(ErrorResponse { error: e }),
-        }
+        .await?;
+        Ok(Response::CreateSpace(CreateSpaceResponse { space }))
     }
 }
 
@@ -105,17 +82,11 @@ pub struct JoinSpaceMethod {
 
 #[async_trait]
 impl Respond for JoinSpaceMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
-        let client = clients.get(&id).unwrap();
-        let space = crate::services::database::invites::accept_invite(
-            client.get_user_id(),
-            self.code.clone(),
-        )
-        .await;
-        match space {
-            Ok(space) => Response::JoinSpace(JoinSpaceResponse { space }),
-            Err(e) => Response::Error(ErrorResponse { error: e }),
-        }
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
+        let user = super::authentication::check_authenticated(&clients, &id)?;
+        let space = user.accept_invite(&self.code).await?;
+        space.add_member(&id).await?;
+        Ok(Response::JoinSpace(JoinSpaceResponse { space }))
     }
 }
 
@@ -133,19 +104,17 @@ pub struct LeaveSpaceMethod {
 
 #[async_trait]
 impl Respond for LeaveSpaceMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
-        let client = clients.get(&id).unwrap();
-        let space = crate::services::database::spaces::leave_space(
-            self.space_id.clone(),
-            client.get_user_id(),
-        )
-        .await;
-        match space {
-            Ok(_) => Response::LeaveSpace(LeaveSpaceResponse {
-                space_id: self.space_id.clone(),
-            }),
-            Err(e) => Response::Error(ErrorResponse { error: e }),
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
+        let user = super::authentication::check_authenticated(&clients, &id)?;
+        let user_in_space = user.in_space(&self.space_id).await?;
+        if !user_in_space {
+            return Err(Error::NotFound);
         }
+        let space = Space::get(&self.space_id).await?;
+        space.remove_member(&id).await?;
+        Ok(Response::LeaveSpace(LeaveSpaceResponse {
+            space_id: self.space_id.clone(),
+        }))
     }
 }
 
@@ -161,13 +130,10 @@ pub struct GetSpacesMethod {}
 
 #[async_trait]
 impl Respond for GetSpacesMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
-        let client = clients.get(&id).unwrap();
-        let spaces = crate::services::database::spaces::get_spaces(client.get_user_id()).await;
-        match spaces {
-            Ok(spaces) => Response::GetSpaces(GetSpacesResponse { spaces }),
-            Err(e) => Response::Error(ErrorResponse { error: e }),
-        }
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
+        let user = super::authentication::check_authenticated(&clients, &id)?;
+        let spaces = user.get_spaces().await?;
+        Ok(Response::GetSpaces(GetSpacesResponse { spaces }))
     }
 }
 
@@ -187,22 +153,19 @@ pub struct EditSpaceMethod {
     description: Option<String>,
     base_permissions: Option<i32>,
 }
-
+// TODO: logger
 #[async_trait]
 impl Respond for EditSpaceMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
-        let client = clients.get(&id).unwrap();
-        let space = update_space(
-            self.space_id.clone(),
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
+        super::authentication::check_authenticated(&clients, &id)?;
+        let space = Space::get(&self.space_id).await?;
+        let space = space.update(
             self.name.clone(),
             self.description.clone(),
             self.base_permissions,
         )
-        .await;
-        match space {
-            Ok(space) => Response::EditSpace(EditSpaceResponse { space }),
-            Err(e) => Response::Error(ErrorResponse { error: e }),
-        }
+        .await?;
+        Ok(Response::EditSpace(EditSpaceResponse { space }))
     }
 }
 
@@ -220,15 +183,13 @@ pub struct DeleteSpaceMethod {
 
 #[async_trait]
 impl Respond for DeleteSpaceMethod {
-    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Response {
-        let client = clients.get(&id).unwrap();
-        let space = delete_space(self.space_id.clone()).await;
-        match space {
-            Ok(_) => Response::DeleteSpace(DeleteSpaceResponse {
-                id: self.space_id.clone(),
-            }),
-            Err(e) => Response::Error(ErrorResponse { error: e }),
-        }
+    async fn respond(&self, clients: DashMap<String, RpcClient>, id: String) -> Result<Response> {
+        super::authentication::check_authenticated(&clients, &id)?;
+        let space = Space::get(&self.space_id).await?;
+        space.delete().await?;
+        Ok(Response::DeleteSpace(DeleteSpaceResponse {
+            id: self.space_id.clone(),
+        }))
     }
 }
 
