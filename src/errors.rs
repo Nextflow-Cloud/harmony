@@ -20,6 +20,7 @@ pub enum Error {
 
     // Authentication errors
     InvalidToken,
+    NotAuthenticated,
 
     // Message errors
     MessageTooLong,
@@ -36,6 +37,12 @@ pub enum Error {
 
     // Channel errors
     ChannelFull,
+
+    // User errors
+    Blocked,
+    AlreadyFriends,
+    AlreadyRequested,
+    NotFriends,
 }
 
 impl fmt::Display for Error {
