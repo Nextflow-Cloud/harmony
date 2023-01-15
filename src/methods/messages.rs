@@ -3,7 +3,6 @@ use std::{sync::Arc, time::Duration};
 use async_std::future;
 use async_trait::async_trait;
 use dashmap::DashMap;
-use futures_util::SinkExt;
 use rmp_serde::Serializer;
 use serde::{Deserialize, Serialize};
 
@@ -95,12 +94,10 @@ impl Respond for SendMessageMethod {
                 println!("Serialized");
                 let y = x.socket.clone();
                 future::timeout(Duration::from_millis(5000), async move {
-                    y.lock()
-                        .await
-                        .send(async_tungstenite::tungstenite::Message::Binary(
-                            value_buffer,
-                        ))
-                        .await
+                    y.send(async_tungstenite::tungstenite::Message::Binary(
+                        value_buffer,
+                    ))
+                    .await
                 })
                 .await
                 .unwrap_or_else(|_| Ok(()))

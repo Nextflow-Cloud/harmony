@@ -1,15 +1,14 @@
-use std::sync::{
-    Arc,
-};
+use std::sync::Arc;
 
 use async_std::{
-    net::{TcpListener, TcpStream},
-    sync::Mutex,
-    task::spawn, channel, future,
+    channel::{unbounded, Sender},
+    future,
+    net::TcpListener,
+    task::spawn,
 };
-use async_tungstenite::{accept_async, tungstenite::Message, WebSocketStream};
+use async_tungstenite::{accept_async, tungstenite::Message};
 use dashmap::DashMap;
-use futures_util::{stream::SplitSink, SinkExt, StreamExt};
+use futures_util::{SinkExt, StreamExt};
 use once_cell::sync::OnceCell;
 use rand::rngs::OsRng;
 use rmp_serde::{Deserializer, Serializer};
@@ -30,10 +29,10 @@ static SERVER: OnceCell<TcpListener> = OnceCell::new();
 #[derive(Clone)]
 pub struct RpcClient {
     pub id: String,
-    pub socket: Arc<Mutex<SplitSink<WebSocketStream<TcpStream>, Message>>>,
+    pub socket: Arc<Sender<Message>>,
     pub user: Option<Arc<User>>,
     pub request_ids: Vec<String>,
-    pub heartbeat_tx: Arc<async_std::channel::Sender<()>>,
+    pub heartbeat_tx: Arc<Sender<()>>,
 }
 
 pub async fn start_server() {
@@ -51,8 +50,14 @@ async fn connection_loop() {
             let connection = stream.unwrap();
             println!("Socket connected: {}", connection.peer_addr().unwrap());
             let ws_stream = accept_async(connection).await.expect("Failed to accept");
-            let (write, mut read) = ws_stream.split();
-            let socket_arc = Arc::new(Mutex::new(write));
+            let (mut write, mut read) = ws_stream.split();
+            let (s, r) = unbounded::<Message>();
+            spawn(async move {
+                while let Ok(msg) = r.recv().await {
+                    write.send(msg).await.expect("Failed to send message");
+                }
+                write.close().await.expect("Failed to close");
+            });
             let id = generate(
                 random_number,
                 &[
@@ -83,26 +88,26 @@ async fn connection_loop() {
             };
             val.serialize(&mut Serializer::new(&mut buf).with_struct_map())
                 .unwrap();
-            let mut write = socket_arc.lock().await;
-            write.send(Message::Binary(buf)).await.unwrap();
-            drop(write);
+            s.send(Message::Binary(buf)).await.unwrap();
 
-            let (tx, rx) = channel::unbounded::<()>();
+            let (tx, rx) = unbounded::<()>();
             let clients_moved = clients.clone();
             let id_moved = id.clone();
             spawn(async move {
-                while future::timeout(std::time::Duration::from_millis(*HEARTBEAT_TIMEOUT), rx
-                    .recv()).await.is_ok()
+                while future::timeout(
+                    std::time::Duration::from_millis(*HEARTBEAT_TIMEOUT),
+                    rx.recv(),
+                )
+                .await
+                .is_ok()
                 {}
                 if let Some((_, client)) = clients_moved.remove(&id_moved) {
-                    let mut socket = client.socket.lock().await;
-                    socket.close().await.expect("Failed to close socket");
-                    drop(socket);
+                    client.socket.close();
                 }
             });
             let client = RpcClient {
                 id: id.clone(),
-                socket: socket_arc.clone(),
+                socket: Arc::new(s),
                 user: None,
                 request_ids,
                 heartbeat_tx: Arc::new(tx),
@@ -134,9 +139,11 @@ async fn connection_loop() {
                                                 .with_struct_map(),
                                         )
                                         .unwrap();
-                                    let mut write = socket_arc.lock().await;
-                                    write.send(Message::Binary(value_buffer)).await.unwrap();
-                                    drop(write);
+                                    client
+                                        .socket
+                                        .send(Message::Binary(value_buffer))
+                                        .await
+                                        .unwrap();
                                     return;
                                 }
                                 drop(client);
@@ -163,9 +170,12 @@ async fn connection_loop() {
                                         &mut Serializer::new(&mut value_buffer).with_struct_map(),
                                     )
                                     .unwrap();
-                                let mut write = socket_arc.lock().await;
-                                write.send(Message::Binary(value_buffer)).await.unwrap();
-                                drop(write);
+                                let client = clients.get(&id.clone()).unwrap();
+                                client
+                                    .socket
+                                    .send(Message::Binary(value_buffer))
+                                    .await
+                                    .unwrap();
                             } else {
                                 let return_value = RpcApiResponse {
                                     id: None,
@@ -178,9 +188,12 @@ async fn connection_loop() {
                                         &mut Serializer::new(&mut value_buffer).with_struct_map(),
                                     )
                                     .unwrap();
-                                let mut write = socket_arc.lock().await;
-                                write.send(Message::Binary(value_buffer)).await.unwrap();
-                                drop(write);
+                                let client = clients.get(&id.clone()).unwrap();
+                                client
+                                    .socket
+                                    .send(Message::Binary(value_buffer))
+                                    .await
+                                    .unwrap();
                             }
                         } else {
                             let mut value_buffer = Vec::new();
@@ -194,30 +207,30 @@ async fn connection_loop() {
                                     &mut Serializer::new(&mut value_buffer).with_struct_map(),
                                 )
                                 .unwrap();
-                            let mut write = socket_arc.lock().await;
-                            write.send(Message::Binary(value_buffer)).await.unwrap();
-                            drop(write);
+                            let client = clients.get(&id.clone()).unwrap();
+                            client
+                                .socket
+                                .send(Message::Binary(value_buffer))
+                                .await
+                                .unwrap();
                         }
                     }
                     Message::Ping(bin) => {
                         println!("Received ping");
-                        let mut write = socket_arc.lock().await;
-                        write.send(Message::Pong(bin)).await.unwrap();
-                        drop(write);
+                        let client = clients.get(&id.clone()).unwrap();
+                        client.socket.send(Message::Pong(bin)).await.unwrap();
                     }
                     Message::Close(_) => {
                         println!("Received close");
-                        let mut write = socket_arc.lock().await;
-                        write.close().await.unwrap();
-                        drop(write);
-                        clients.remove(&id.clone());
+                        if let Some((_, client)) = clients.remove(&id.clone()) {
+                            client.socket.close();
+                        }
                     }
                     _ => {
                         println!("Received unknown message");
-                        let mut write = socket_arc.lock().await;
-                        write.close().await.unwrap();
-                        drop(write);
-                        clients.remove(&id.clone());
+                        if let Some((_, client)) = clients.remove(&id.clone()) {
+                            client.socket.close();
+                        }
                     }
                 }
             }

@@ -31,33 +31,33 @@ impl Respond for GetChannelMethod {
         let channel = Channel::get(&self.id).await?;
         match channel {
             Channel::PrivateChannel { .. } | Channel::GroupChannel { .. } => {
-                        if self.space_id.is_some() {
+                if self.space_id.is_some() {
                     return Err(Error::NotFound);
-                        }
+                }
                 let in_channel = user.in_channel(&channel).await?;
                 if !in_channel {
                     return Err(Error::NotFound);
-                                }
+                }
                 Ok(Response::GetChannel(GetChannelResponse { channel }))
-                    }
-                    Channel::InformationChannel { ref space_id, .. }
-                    | Channel::AnnouncementChannel { ref space_id, .. }
-                    | Channel::ChatChannel { ref space_id, .. } => {
-                        if let Some(request_space_id) = &self.space_id {
-                            if request_space_id != space_id {
+            }
+            Channel::InformationChannel { ref space_id, .. }
+            | Channel::AnnouncementChannel { ref space_id, .. }
+            | Channel::ChatChannel { ref space_id, .. } => {
+                if let Some(request_space_id) = &self.space_id {
+                    if request_space_id != space_id {
                         return Err(Error::NotFound);
-                            }
+                    }
                     let user_in_space = user.in_space(space_id).await?;
-                                    if !user_in_space {
+                    if !user_in_space {
                         return Err(Error::NotFound);
-                                    }
-                    Ok(Response::GetChannel(GetChannelResponse { channel }))
-                        } else {
-                    Err(Error::NotFound)
-                        }
                     }
+                    Ok(Response::GetChannel(GetChannelResponse { channel }))
+                } else {
+                    Err(Error::NotFound)
                 }
             }
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -69,7 +69,7 @@ pub struct GetChannelResponse {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GetChannelsMethod {
-// TODO: work out how scopes work with private channels
+    // TODO: work out how scopes work with private channels
     scope_id: Option<String>,
 }
 
