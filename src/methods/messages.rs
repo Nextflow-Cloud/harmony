@@ -100,7 +100,7 @@ impl Respond for SendMessageMethod {
                     .await
                 })
                 .await
-                .unwrap_or_else(|_| Ok(()))
+                .unwrap_or(Ok(()))
                 .unwrap_or_else(|e| println!("{e:?}"));
             }
         }
