@@ -85,8 +85,7 @@ impl Respond for HeartbeatMethod {
         id: String,
     ) -> Result<Response> {
         let client = clients.get(&id).unwrap();
-        let tx = client.heartbeat_tx.lock().await;
-        tx.send(()).unwrap();
+        client.heartbeat_tx.send(()).await.unwrap();
         Ok(Response::Heartbeat(HeartbeatResponse { ack: true }))
     }
 }

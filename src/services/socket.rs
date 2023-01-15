@@ -1,12 +1,11 @@
 use std::sync::{
-    mpsc::{channel, Sender},
     Arc,
 };
 
 use async_std::{
     net::{TcpListener, TcpStream},
     sync::Mutex,
-    task::spawn,
+    task::spawn, channel, future,
 };
 use async_tungstenite::{accept_async, tungstenite::Message, WebSocketStream};
 use dashmap::DashMap;
@@ -34,7 +33,7 @@ pub struct RpcClient {
     pub socket: Arc<Mutex<SplitSink<WebSocketStream<TcpStream>, Message>>>,
     pub user: Option<Arc<User>>,
     pub request_ids: Vec<String>,
-    pub heartbeat_tx: Arc<Mutex<Sender<()>>>,
+    pub heartbeat_tx: Arc<async_std::channel::Sender<()>>,
 }
 
 pub async fn start_server() {
@@ -88,19 +87,17 @@ async fn connection_loop() {
             write.send(Message::Binary(buf)).await.unwrap();
             drop(write);
 
-            let (tx, rx) = channel::<()>();
+            let (tx, rx) = channel::unbounded::<()>();
             let clients_moved = clients.clone();
             let id_moved = id.clone();
             spawn(async move {
-                while rx
-                    .recv_timeout(std::time::Duration::from_millis(*HEARTBEAT_TIMEOUT))
-                    .is_ok()
+                while future::timeout(std::time::Duration::from_millis(*HEARTBEAT_TIMEOUT), rx
+                    .recv()).await.is_ok()
                 {}
-                if let Some(client) = clients_moved.get(&id_moved) {
+                if let Some((_, client)) = clients_moved.remove(&id_moved) {
                     let mut socket = client.socket.lock().await;
                     socket.close().await.expect("Failed to close socket");
                     drop(socket);
-                    clients_moved.remove(&id_moved);
                 }
             });
             let client = RpcClient {
@@ -108,7 +105,7 @@ async fn connection_loop() {
                 socket: socket_arc.clone(),
                 user: None,
                 request_ids,
-                heartbeat_tx: Arc::new(Mutex::new(tx)),
+                heartbeat_tx: Arc::new(tx),
             };
             clients.insert(id.clone(), client);
             while let Some(data) = read.next().await {
