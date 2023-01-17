@@ -222,9 +222,6 @@ async fn connection_loop() {
                     }
                     Message::Close(_) => {
                         println!("Received close");
-                        if let Some((_, client)) = clients.remove(&id.clone()) {
-                            client.socket.close();
-                        }
                     }
                     _ => {
                         println!("Received unknown message");
