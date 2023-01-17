@@ -35,7 +35,7 @@ impl Space {
             name,
             description: description.unwrap_or_default(),
             channels: Vec::new(),
-            members: Vec::new(),
+            members: vec![owner.clone()],
             roles: Vec::new(),
             owner,
             scope_id: scope_id.unwrap_or_else(|| "global".to_owned()),

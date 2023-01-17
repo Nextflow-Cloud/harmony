@@ -56,7 +56,7 @@ impl Respond for CreateSpaceMethod {
         clients: Arc<DashMap<String, RpcClient>>,
         id: String,
     ) -> Result<Response> {
-        super::authentication::check_authenticated(clients, &id)?;
+        let user = super::authentication::check_authenticated(clients, &id)?;
         let trimmed = self.name.trim();
         if trimmed.len() > 32 {
             return Err(Error::NameTooLong);
@@ -67,7 +67,7 @@ impl Respond for CreateSpaceMethod {
         let space = Space::create(
             self.name.clone(),
             self.description.clone(),
-            id,
+            user.id.clone(),
             self.scope.clone(),
         )
         .await?;
