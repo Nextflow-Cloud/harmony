@@ -99,7 +99,13 @@ async fn start_client(
         match data.unwrap() {
             Message::Binary(bin) => {
                 println!("Received binary data");
-                handle_packet(bin, &clients, &id).await;
+                let response = handle_packet(bin, &clients, &id).await;
+                let client = clients.get(&id.clone()).unwrap();
+                client
+                    .socket
+                    .send(Message::Binary(serialize(&response)))
+                    .await
+                    .unwrap();
             }
             Message::Ping(bin) => {
                 println!("Received ping");
@@ -119,7 +125,11 @@ async fn start_client(
     }
 }
 
-pub async fn handle_packet(bin: Vec<u8>, clients: &Arc<DashMap<String, RpcClient>>, id: &String) {
+pub async fn handle_packet(
+    bin: Vec<u8>,
+    clients: &Arc<DashMap<String, RpcClient>>,
+    id: &String,
+) -> RpcApiResponse {
     let result = deserialize::<RpcApiMethod>(bin.as_slice());
     if let Ok(r) = result {
         println!("Received: {:?}", r.method);
@@ -128,67 +138,42 @@ pub async fn handle_packet(bin: Vec<u8>, clients: &Arc<DashMap<String, RpcClient
             if client.request_ids.contains(&request_id) {
                 client.request_ids.retain(|x| x != &request_id);
             } else {
-                let return_value = RpcApiResponse {
+                return RpcApiResponse {
                     id: None,
                     response: None,
                     error: Some(Error::InvalidRequestId),
                 };
-                client
-                    .socket
-                    .send(Message::Binary(serialize(&return_value)))
-                    .await
-                    .unwrap();
-                return;
             }
             drop(client);
             let dispatch = get_respond(r.method)
                 .respond(clients.clone(), id.clone())
                 .await;
-            let return_value: RpcApiResponse;
             if let Ok(dispatch) = dispatch {
-                return_value = RpcApiResponse {
+                RpcApiResponse {
                     id: Some(request_id),
                     response: Some(dispatch),
                     error: None,
-                };
+                }
             } else {
-                return_value = RpcApiResponse {
+                RpcApiResponse {
                     id: Some(request_id),
                     response: None,
                     error: Some(dispatch.unwrap_err()),
-                };
+                }
             }
-            let client = clients.get(&id.clone()).unwrap();
-            client
-                .socket
-                .send(Message::Binary(serialize(&return_value)))
-                .await
-                .unwrap();
         } else {
-            let return_value = RpcApiResponse {
+            RpcApiResponse {
                 id: None,
                 response: None,
                 error: Some(Error::InvalidRequestId),
-            };
-            let client = clients.get(&id.clone()).unwrap();
-            client
-                .socket
-                .send(Message::Binary(serialize(&return_value)))
-                .await
-                .unwrap();
+            }
         }
     } else {
-        let return_value = RpcApiResponse {
+        RpcApiResponse {
             id: None,
             response: None,
             error: Some(Error::InvalidMethod),
-        };
-        let client = clients.get(&id.clone()).unwrap();
-        client
-            .socket
-            .send(Message::Binary(serialize(&return_value)))
-            .await
-            .unwrap();
+        }
     }
 }
 
