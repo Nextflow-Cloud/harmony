@@ -41,7 +41,7 @@ pub struct User {
     pub profile_banner: Option<String>, // TODO: Make use of file handling
     pub profile_description: String,
     pub affinities: Vec<Affinity>,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub online: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]

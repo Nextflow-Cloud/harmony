@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::errors::{Error, Result};
 use crate::methods::Response;
 use crate::services::database::users::User;
-use crate::services::encryption::{generate, random_number};
+use crate::services::encryption::generate_id;
 use crate::services::environment::JWT_SECRET;
 use crate::services::socket::RpcClient;
 
@@ -110,14 +110,7 @@ impl Respond for GetIdMethod {
         let mut client = clients.get_mut(&id).unwrap();
         let mut new_request_ids = Vec::new();
         for _ in 0..20 {
-            let id = generate(
-                random_number,
-                &[
-                    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
-                    'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
-                ],
-                10,
-            );
+            let id = generate_id();
             client.request_ids.push(id.clone());
             new_request_ids.push(id);
         }
