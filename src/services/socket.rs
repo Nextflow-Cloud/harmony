@@ -62,7 +62,7 @@ async fn start_client(
     for _ in 0..20 {
         request_ids.push(generate_id());
     }
-    let secret = EphemeralSecret::new(OsRng);
+    let secret = EphemeralSecret::random_from_rng(OsRng);
     let public_key = PublicKey::from(&secret);
     let val = RpcApiEvent {
         event: Event::Hello(HelloEvent {
