@@ -22,12 +22,12 @@ ulid = "1.0.0"
 env_logger = "0.10.0"
 log = "0.4.17"
 
-async-tungstenite = "0.20.0"
+async-tungstenite = "0.21.0"
 
 mongodb = "2.4.0"
 jsonwebtoken = "8.3.0"
 
-serde = { version = "1.0.159", features = ["derive"] }
+serde = { version = "1.0.160", features = ["derive"] }
 rmp-serde = "1.1.1"
 
 aes-gcm = "0.10.1"
