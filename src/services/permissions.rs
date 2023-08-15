@@ -8,17 +8,28 @@ use crate::errors::Result;
 #[repr(i64)]
 pub enum Permission {
     Administrator = 0x1,    // 1 << 0
-    ViewChannel = 0x2,      // 1 << 1
-    SendMessages = 0x4,     // 1 << 2
-    DeleteMessages = 0x8,   // 1 << 3
-    CreateInvite = 0x10,    // 1 << 4
-    SuspendMembers = 0x20,  // 1 << 5
-    KickMembers = 0x40,     // 1 << 6
-    BanMembers = 0x80,      // 1 << 7
-    ManageChannels = 0x100, // 1 << 8
-    ManageInvites = 0x200,  // 1 << 9
-    ManageRoles = 0x400,    // 1 << 10
-    ManageSpace = 0x800,    // 1 << 11
+    ViewChannels = 0x2,     // 1 << 1
+    CreateInvite = 0x4,    // 1 << 2
+    SuspendMembers = 0x8,  // 1 << 3
+    KickMembers = 0x10,     // 1 << 4
+    BanMembers = 0x20,      // 1 << 5
+    ManageChannels = 0x40, // 1 << 6
+    ManageChannelPermissions = 0x80, // 1 << 7
+    ManageInvites = 0x100, // 1 << 8
+    ManageRoles = 0x200,  // 1 << 9
+    ManageSpace = 0x400,  // 1 << 10
+    SendMessages = 0x800, // 1 << 11
+    SendMultimediaMessages = 0x1000, // 1 << 12
+    EmbedMessages = 0x2000, // 1 << 13
+    ManageMessages = 0x4000, // 1 << 14
+    MentionAll = 0x8000, // 1 << 15
+    UseReactions = 0x10000, // 1 << 16
+    StartCalls = 0x20000, // 1 << 17
+    JoinCalls = 0x40000, // 1 << 18
+    ManageCalls = 0x80000, // 1 << 19
+    Speak = 0x100000, // 1 << 20
+    Video = 0x200000, // 1 << 21
+    Screenshare = 0x400000, // 1 << 22
 }
 
 #[derive(Clone, Debug)]
@@ -30,17 +41,50 @@ impl Permission {
     pub fn iter() -> impl Iterator<Item = Self> {
         [
             Permission::Administrator,
-            Permission::ViewChannel,
-            Permission::SendMessages,
-            Permission::DeleteMessages,
+            Permission::ViewChannels,
             Permission::CreateInvite,
             Permission::SuspendMembers,
             Permission::KickMembers,
             Permission::BanMembers,
             Permission::ManageChannels,
+            Permission::ManageChannelPermissions,
             Permission::ManageInvites,
             Permission::ManageRoles,
             Permission::ManageSpace,
+            Permission::SendMessages,
+            Permission::SendMultimediaMessages,
+            Permission::EmbedMessages,
+            Permission::ManageMessages,
+            Permission::MentionAll,
+            Permission::UseReactions,
+            Permission::StartCalls,
+            Permission::JoinCalls,
+            Permission::ManageCalls,
+            Permission::Speak,
+            Permission::Video,
+            Permission::Screenshare,
+        ]
+        .iter()
+        .copied()
+    }
+    
+    pub fn iter_channel() -> impl Iterator<Item = Self> {
+        [
+            Permission::ViewChannels,
+            Permission::ManageChannels,
+            Permission::ManageChannelPermissions,
+            Permission::SendMessages,
+            Permission::SendMultimediaMessages,
+            Permission::EmbedMessages,
+            Permission::ManageMessages,
+            Permission::MentionAll,
+            Permission::UseReactions,
+            Permission::StartCalls,
+            Permission::JoinCalls,
+            Permission::ManageCalls,
+            Permission::Speak,
+            Permission::Video,
+            Permission::Screenshare, 
         ]
         .iter()
         .copied()
@@ -121,17 +165,13 @@ impl From<i64> for PermissionSet {
 }
 
 pub async fn can_modify_role(member: &Member, role: &Role) -> Result<bool> {
-    let space = Space::get(&member.space_id)
-        .await
-        .expect("Unexpected error: failed to get space");
+    let space = Space::get(&member.space_id).await?;
     if space.owner == member.id {
         return Ok(true);
     }
     let member_roles = member.roles.clone();
     let futures = member_roles.iter().map(Role::get);
-    let mut roles = futures_util::future::try_join_all(futures)
-        .await
-        .expect("Unexpected error: failed to get roles");
+    let mut roles = futures_util::future::try_join_all(futures).await?;
     roles.sort_by(|a, b| a.position.cmp(&b.position));
     roles.reverse();
     let permissions = member.get_permissions().await?;
