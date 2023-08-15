@@ -43,6 +43,10 @@ pub enum Error {
     AlreadyFriends,
     AlreadyRequested,
     NotFriends,
+
+    // Call errors
+    AlreadyExists,
+    CallLimitReached,
 }
 
 impl fmt::Display for Error {
@@ -71,6 +75,8 @@ impl fmt::Display for Error {
             Error::AlreadyFriends => write!(f, "Already friends"),
             Error::AlreadyRequested => write!(f, "Already requested"),
             Error::NotFriends => write!(f, "Not friends"),
+            Error::AlreadyExists => write!(f, "Already exists"),
+            Error::CallLimitReached => write!(f, "Call limit reached"),
         }
     }
 }

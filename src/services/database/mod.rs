@@ -9,6 +9,7 @@ pub mod roles;
 pub mod scopes;
 pub mod spaces;
 pub mod users;
+pub mod calls;
 
 use crate::services::environment::{MONGODB_DATABASE, MONGODB_URI};
 

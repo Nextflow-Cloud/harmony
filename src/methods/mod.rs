@@ -28,7 +28,7 @@ use self::{
         CreateSpaceMethod, CreateSpaceResponse, DeleteSpaceMethod, DeleteSpaceResponse,
         EditSpaceMethod, EditSpaceResponse, GetSpaceMethod, GetSpaceResponse, GetSpacesResponse,
         JoinSpaceResponse, LeaveSpaceResponse,
-    },
+    }, webrtc::{JoinCallResponse, JoinCallMethod, StartCallResponse, StartCallMethod, LeaveCallMethod, EndCallMethod, LeaveCallResponse, EndCallResponse},
 };
 
 pub mod authentication;
@@ -50,6 +50,10 @@ pub enum Method {
     GetId(GetIdMethod) = 3,
 
     // WebRTC: 10-19
+    StartCall(StartCallMethod) = 10,
+    JoinCall(JoinCallMethod) = 11,
+    LeaveCall(LeaveCallMethod) = 12,
+    EndCall(EndCallMethod) = 13,
     
     GetMessages(GetMessagesMethod) = 20,
     SendMessage(SendMessageMethod) = 22,
@@ -97,6 +101,10 @@ pub fn get_respond(m: Method) -> Box<dyn Respond + Send + Sync> {
         Method::Identify(m) => Box::new(m),
         Method::Heartbeat(m) => Box::new(m),
         Method::GetId(m) => Box::new(m),
+        Method::StartCall(m) => Box::new(m),
+        Method::JoinCall(m) => Box::new(m),
+        Method::LeaveCall(m) => Box::new(m),
+        Method::EndCall(m) => Box::new(m),
         Method::GetMessages(m) => Box::new(m),
         Method::SendMessage(m) => Box::new(m),
         Method::GetChannel(m) => Box::new(m),
@@ -168,6 +176,10 @@ pub enum Response {
     GetId(GetIdResponse) = 3,
 
     // WebRTC: 10-19
+    StartCall(StartCallResponse) = 10,
+    JoinCall(JoinCallResponse) = 11,
+    LeaveCall(LeaveCallResponse) = 12,
+    EndCall(EndCallResponse) = 13,
     
     GetMessages(GetMessagesResponse) = 20,
     SendMessage(SendMessageResponse) = 22,
