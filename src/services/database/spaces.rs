@@ -201,7 +201,7 @@ impl Space {
             .collection::<Channel>("channels")
             .find(
                 doc! {
-                    "spaceId": &self.id,
+                    "space_id": &self.id,
                 },
                 None,
             )
@@ -209,6 +209,24 @@ impl Space {
             .try_collect()
             .await?;
         Ok(channels)
+    }
+
+    pub async fn get_channel(&self, id: &String) -> Result<Channel> {
+        let database = super::get_database();
+        let channel = database
+            .collection::<Channel>("channels")
+            .find_one(
+                doc! {
+                    "id": id,
+                    "space_id": &self.id,
+                },
+                None,
+            )
+            .await?;
+        match channel {
+            Some(channel) => Ok(channel),
+            None => Err(Error::NotFound),
+        }
     }
 
     pub async fn get_roles(&self) -> Result<Vec<Role>> {
