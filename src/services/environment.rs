@@ -13,4 +13,5 @@ lazy_static! {
         .expect("MAX_SPACE_COUNT must be an integer");
     pub static ref LISTEN_ADDRESS: String =
         env::var("LISTEN_ADDRESS").unwrap_or_else(|_| "0.0.0.0:9000".to_string());
+    pub static ref REDIS_URI: String = env::var("REDIS_URI").expect("REDIS_URI must be set");
 }
