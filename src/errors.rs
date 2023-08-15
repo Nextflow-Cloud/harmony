@@ -92,3 +92,17 @@ impl From<mongodb::bson::ser::Error> for Error {
         }
     }
 }
+
+impl From<redis::RedisError> for Error {
+    fn from(error: redis::RedisError) -> Self {
+        Error::DatabaseError {
+            message: error.to_string(),
+        }
+    }
+}
+
+impl From<jsonwebtoken::errors::Error> for Error {
+    fn from(_: jsonwebtoken::errors::Error) -> Self {
+        Error::InternalError
+    }
+}
