@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 async-std = { version = "1.12.0", features = ["attributes", "tokio1"] }
-async-trait = "0.1.72"
+async-trait = "0.1.73"
 futures-util = "0.3.28"
 
 dashmap = "5.5.0"
@@ -20,17 +20,17 @@ num_cpus = "1.16.0"
 ulid = "1.0.0"
 
 env_logger = "0.10.0"
-log = "0.4.19"
+log = "0.4.20"
 
-async-tungstenite = "0.22.2"
+async-tungstenite = "0.23.0"
 
 mongodb = "2.6.0"
 jsonwebtoken = "8.3.0"
-redis = { version = "0.23.1", features = ["async-std-comp"] }
+redis = { version = "0.23.2", features = ["async-std-comp"] }
 
-serde = { version = "1.0.178", features = ["derive"] }
+serde = { version = "1.0.183", features = ["derive"] }
 rmp-serde = "1.1.2"
 
 aes-gcm = "0.10.2"
-flate2 = "1.0.26"
-x25519-dalek = "2.0.0-rc.3"
+flate2 = "1.0.27"
+x25519-dalek = "2.0.0"
