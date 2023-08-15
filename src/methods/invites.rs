@@ -11,8 +11,7 @@ use crate::{
             channels::Channel,
             infractions::is_banned,
             invites::{get_invites, Invite},
-            members::get_member,
-            spaces::Space,
+            spaces::Space, members::Member,
         },
         permissions::Permission,
         socket::RpcClient,
@@ -97,7 +96,7 @@ impl Respond for DeleteInviteMethod {
         id: String,
     ) -> Result<Response> {
         let user = check_authenticated(clients, &id)?;
-        let member = get_member(user.id.clone(), self.space_id.clone()).await?;
+        let member = Member::get(&user.id, &self.space_id).await?;
         let permissions = member.get_permissions().await?;
         if !permissions.has_permission(Permission::ManageInvites) {
             return Err(Error::MissingPermission {
@@ -220,7 +219,7 @@ impl Respond for GetInvitesMethod {
     ) -> Result<Response> {
         let user = check_authenticated(clients, &id)?;
         if let Some(space_id) = &self.space_id {
-            let member = get_member(user.id.clone(), space_id.clone()).await?;
+            let member = Member::get(&user.id, &space_id).await?;
             let permissions = member.get_permissions().await?;
             if !permissions.has_permission(Permission::ManageInvites) {
                 return Err(Error::MissingPermission {

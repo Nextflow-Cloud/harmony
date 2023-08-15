@@ -8,9 +8,8 @@ use crate::{
     errors::{Error, Result},
     services::{
         database::{
-            members::get_member,
             roles::{Color, Role},
-            spaces::Space,
+            spaces::Space, members::Member,
         },
         permissions::{can_modify_role, Permission},
         socket::RpcClient,
@@ -83,7 +82,7 @@ impl Respond for EditRoleMethod {
                 return Err(Error::NotFound);
             }
         }
-        let member = get_member(id, self.space_id.clone()).await?;
+        let member = Member::get(&id, &self.space_id).await?;
         let can_modify = can_modify_role(&member, &role).await?;
         if !can_modify {
             return Err(Error::MissingPermission {
