@@ -128,8 +128,8 @@ pub fn spawn_check_available_nodes() {
     spawn(async move {
         loop {
             let time = chrono::Utc::now().timestamp_millis();
-            let mut nodes = AVAILABLE_NODES.iter_mut();
-            while let Some(node) = nodes.next() {
+            let nodes = AVAILABLE_NODES.iter();
+            for node in nodes {
                 if node.value().last_ping + 10000 < time {
                     node.value().suppress();
                     // Remove node
@@ -172,10 +172,10 @@ impl FromRedisValue for ActiveCall {
                 match data {
                     Ok(data) => Ok(data),
                     Err(_) => {
-                        return Err(redis::RedisError::from((
+                        Err(redis::RedisError::from((
                             redis::ErrorKind::TypeError,
                             "Deserialization error",
-                        )));
+                        )))
                     }
                 }
             }
@@ -196,10 +196,10 @@ impl FromRedisValue for NodeEvent {
                 match data {
                     Ok(data) => Ok(data),
                     Err(_) => {
-                        return Err(redis::RedisError::from((
+                        Err(redis::RedisError::from((
                             redis::ErrorKind::TypeError,
                             "Deserialization error",
-                        )));
+                        )))
                     }
                 }
             }
@@ -232,7 +232,7 @@ impl ActiveCall {
     pub async fn create(
         space: &String,
         channel: &String,
-        initiator: &String,
+        initiator: &str,
     ) -> Result<ActiveCall> {
         let mut redis = get_connection().await;
         let call = Self::get_in_channel(space, channel).await?;
@@ -242,7 +242,7 @@ impl ActiveCall {
         let call = ActiveCall {
             id: ulid::Ulid::new().to_string(),
             name: None,
-            members: vec![initiator.clone()],
+            members: vec![initiator.to_owned()],
             space_id: space.clone(),
             channel_id: channel.clone(),
         };
@@ -256,7 +256,7 @@ impl ActiveCall {
         let stored_call = Call {
             channel_id: channel.clone(),
             id: call.id.clone(),
-            joined_members: vec![initiator.clone()],
+            joined_members: vec![initiator.to_owned()],
             name: None,
             ended_at: chrono::Utc::now().timestamp_millis(),
         };
@@ -336,7 +336,7 @@ impl ActiveCall {
         self.members.retain(|x| x != user_id);
         self.update().await?;
         // then end the call if there are no users present
-        if self.members.len() == 0 {
+        if self.members.is_empty() {
             self.end().await?;
         }
         Ok(())

@@ -40,7 +40,7 @@ impl Respond for JoinCallMethod {
     ) -> Result<Response> {
         super::authentication::check_authenticated(clients, &id)?; // TODO: check rate limit, permissions req'd
         if let Some(space_id) = &self.space_id {
-            let space = Space::get(&space_id).await?;
+            let space = Space::get(space_id).await?;
             if !space.members.contains(&id) {
                 return Err(Error::NotFound); // unauthorized
             }
@@ -83,7 +83,7 @@ impl Respond for StartCallMethod {
     ) -> Result<Response> {
         super::authentication::check_authenticated(clients, &id)?;
         if let Some(space_id) = &self.space_id {
-            let space = Space::get(&space_id).await?;
+            let space = Space::get(space_id).await?;
             if !space.members.contains(&id) {
                 return Err(Error::NotFound);
             }
@@ -126,7 +126,7 @@ impl Respond for EndCallMethod {
     ) -> Result<Response> {
         super::authentication::check_authenticated(clients, &id)?;
         if let Some(space_id) = &self.space_id {
-            let space = Space::get(&space_id).await?;
+            let space = Space::get(space_id).await?;
             if !space.members.contains(&id) {
                 return Err(Error::NotFound);
             }

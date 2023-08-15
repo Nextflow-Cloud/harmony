@@ -220,7 +220,7 @@ impl Respond for GetInvitesMethod {
     ) -> Result<Response> {
         let user = check_authenticated(clients, &id)?;
         if let Some(space_id) = &self.space_id {
-            let member = Member::get(&user.id, &space_id).await?;
+            let member = Member::get(&user.id, space_id).await?;
             let permissions = member.get_permissions().await?;
             if !permissions.has_permission(Permission::ManageInvites) {
                 return Err(Error::MissingPermission {

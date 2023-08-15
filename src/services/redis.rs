@@ -15,9 +15,8 @@ pub fn get_client() -> &'static Client {
 }
 
 pub async fn get_connection() -> Connection {
-    let connection = get_client()
+    get_client()
         .get_async_std_connection()
         .await
-        .expect("Failed to get connection");
-    connection
+        .expect("Failed to get connection")
 }
