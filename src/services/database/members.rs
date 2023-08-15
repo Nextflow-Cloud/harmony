@@ -1,12 +1,14 @@
+use std::collections::HashMap;
+
 use mongodb::bson::doc;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    errors::{Error, Result},
+    errors::Result,
     services::permissions::{Permission, PermissionSet},
 };
 
-use super::{channels::Channel, roles::Role, spaces::Space};
+use super::{channels::{Channel, EntityType}, roles::Role, spaces::Space};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Member {
@@ -45,22 +47,52 @@ impl Member {
         }
     }
 
-    pub async fn get_channel_permissions(&self, channel: &Channel) -> Result<PermissionSet> {
+    // PermissionOverrideState (0, 1, 2)
+    pub async fn get_permission_in_channel(&self, channel: &Channel, permission: Permission) -> Result<bool> {
+        let space = Space::get(&self.space_id).await?;
+        if space.owner == self.id {
+            return Ok(true);
+        }
+        let mut has_permission = false;
+        // TODO: Do we really need to order the roles?
+        let permissions = self.get_permissions().await?;
+        if permissions.has_permission(permission) {
+            has_permission = true;
+        }
         match channel {
-            Channel::PrivateChannel { .. } | Channel::GroupChannel { .. } => Err(Error::NotFound),
-            // FIXME: This is a temporary solution
-            Channel::InformationChannel {
-                id, permissions, ..
+            Channel::InformationChannel { permissions, .. }
+            | Channel::AnnouncementChannel { permissions, .. }
+            | Channel::ChatChannel { permissions, .. } => {
+                
+                let mut role_overrides = permissions.iter().filter(|p| p.entity_type == EntityType::Role).filter(|p| self.roles.contains(&p.id)).collect::<Vec<_>>();
+                let mut map = HashMap::new();
+                for role in &role_overrides {
+                    map.insert(role.id.clone(), Role::get(&role.id).await?);
+                }
+                role_overrides.sort_by(|a, b|  map.get(&a.id).unwrap().position.cmp(&map.get(&b.id).unwrap().position));
+                role_overrides.reverse();
+                for role_override in role_overrides {
+                    if role_override.allow.has_permission(permission) {
+                        has_permission = true;
+                    }
+                    if role_override.deny.has_permission(permission) {
+                        has_permission = false;
+                    }
+                }
+
+                let member_override = permissions.iter().find(|p| p.id == self.id && p.entity_type == EntityType::Member);
+                if let Some(member_override) = member_override {
+                    if member_override.allow.has_permission(permission) {
+                        has_permission = true;
+                    }
+                    if member_override.deny.has_permission(permission) {
+                        has_permission = false;
+                    }
+                }
+                
+                Ok(has_permission)
             }
-            | Channel::AnnouncementChannel {
-                id, permissions, ..
-            }
-            | Channel::ChatChannel {
-                id, permissions, ..
-            } => {
-                // let permissions_space = self.get_permissions().await?;
-                todo!("{} {:?}", id, permissions)
-            }
+            _ => Ok(false), // FIXME: Need to handle private channels 
         }
     }
 

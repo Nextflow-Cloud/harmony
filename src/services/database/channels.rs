@@ -111,10 +111,19 @@ impl Channel {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PermissionOverride {
     pub id: String,
     pub allow: PermissionSet,
     pub deny: PermissionSet,
+    pub entity_type: EntityType,
+}
+
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum EntityType {
+    Role,
+    Member,
 }
 
 // pub async fn create_channel(
