@@ -26,6 +26,7 @@ async-tungstenite = "0.22.2"
 
 mongodb = "2.6.0"
 jsonwebtoken = "8.3.0"
+redis = { version = "0.23.1", features = ["async-std-comp"] }
 
 serde = { version = "1.0.178", features = ["derive"] }
 rmp-serde = "1.1.2"
