@@ -610,33 +610,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "easylink"
-version = "0.1.0"
-dependencies = [
- "aes-gcm",
- "async-std",
- "async-trait",
- "async-tungstenite",
- "chrono",
- "dashmap",
- "env_logger",
- "flate2",
- "futures-util",
- "jsonwebtoken",
- "lazy_static",
- "log",
- "mongodb",
- "num_cpus",
- "once_cell",
- "rand",
- "redis",
- "rmp-serde",
- "serde",
- "ulid",
- "x25519-dalek",
-]
-
-[[package]]
 name = "enum-as-inner"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -862,6 +835,33 @@ dependencies = [
  "futures-core",
  "js-sys",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "harmony"
+version = "0.1.0"
+dependencies = [
+ "aes-gcm",
+ "async-std",
+ "async-trait",
+ "async-tungstenite",
+ "chrono",
+ "dashmap",
+ "env_logger",
+ "flate2",
+ "futures-util",
+ "jsonwebtoken",
+ "lazy_static",
+ "log",
+ "mongodb",
+ "num_cpus",
+ "once_cell",
+ "rand",
+ "redis",
+ "rmp-serde",
+ "serde",
+ "ulid",
+ "x25519-dalek",
 ]
 
 [[package]]
