@@ -70,7 +70,7 @@ async fn start_client(
             request_ids: request_ids.clone(),
         }),
     };
-    s.send(Message::Binary(serialize(&val))).await.unwrap();
+    s.send(Message::Binary(serialize(&val).expect("Failed to serialize"))).await.expect("Failed to send message");
 
     let (tx, rx) = unbounded::<()>();
     let clients_moved = clients.clone();
@@ -103,9 +103,9 @@ async fn start_client(
                 let client = clients.get(&id.clone()).unwrap();
                 client
                     .socket
-                    .send(Message::Binary(serialize(&response)))
+                    .send(Message::Binary(serialize(&response).expect("Failed to serialize")))
                     .await
-                    .unwrap();
+                    .expect("Failed to send message");
             }
             Message::Ping(bin) => {
                 println!("Received ping");
@@ -177,12 +177,11 @@ pub async fn handle_packet(
     }
 }
 
-pub fn serialize<T: Serialize>(value: &T) -> Vec<u8> {
+pub fn serialize<T: Serialize>(value: &T) -> Result<Vec<u8>, rmp_serde::encode::Error> {
     let mut buf = Vec::new();
     value
-        .serialize(&mut Serializer::new(&mut buf).with_struct_map())
-        .unwrap();
-    buf
+        .serialize(&mut Serializer::new(&mut buf).with_struct_map())?;
+    Ok(buf)
 }
 
 pub fn deserialize<T: for<'a> Deserialize<'a>>(buf: &[u8]) -> Result<T, rmp_serde::decode::Error> {
