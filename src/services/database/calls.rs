@@ -21,9 +21,9 @@ impl Call {
         database
             .collection::<Call>("calls")
             .insert_one(self.clone(), None)
-            .await?;  
+            .await?;
         Ok(())
-    } 
+    }
     // updating it periodically creates persistence
     pub async fn update(id: &String, members: Vec<String>) -> Result<()> {
         let database = super::get_database();

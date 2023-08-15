@@ -1,3 +1,4 @@
+pub mod calls;
 pub mod channels;
 pub mod emojis;
 pub mod events;
@@ -9,7 +10,6 @@ pub mod roles;
 pub mod scopes;
 pub mod spaces;
 pub mod users;
-pub mod calls;
 
 use crate::services::environment::{MONGODB_DATABASE, MONGODB_URI};
 

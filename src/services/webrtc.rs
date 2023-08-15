@@ -1,14 +1,19 @@
-use async_std::task::{spawn, sleep};
+use async_std::task::{sleep, spawn};
 use dashmap::DashMap;
 use futures_util::StreamExt;
-use jsonwebtoken::{encode, Header, EncodingKey};
+use jsonwebtoken::{encode, EncodingKey, Header};
 use lazy_static::lazy_static;
 use redis::{AsyncCommands, FromRedisValue, ToRedisArgs};
 use serde::{Deserialize, Serialize};
 
-use crate::errors::{Result, Error};
+use crate::errors::{Error, Result};
 
-use super::{redis::get_connection, socket::{deserialize, serialize}, environment::JWT_SECRET, database::calls::Call};
+use super::{
+    database::calls::Call,
+    environment::JWT_SECRET,
+    redis::get_connection,
+    socket::{deserialize, serialize},
+};
 
 lazy_static! {
     pub static ref AVAILABLE_NODES: DashMap<String, Node> = DashMap::new();
@@ -47,9 +52,7 @@ pub enum NodeEventKind {
     Timeout(CallUser),
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ServerEventKind {
-
-}
+pub enum ServerEventKind {}
 
 impl From<NodeDescription> for Node {
     fn from(node: NodeDescription) -> Self {
@@ -84,28 +87,41 @@ pub fn spawn_check_available_nodes() {
             while let Some(msg) = pubsub.on_message().next().await {
                 let payload: NodeEvent = msg.get_payload().unwrap();
                 match payload {
-                    NodeEvent { event: NodeEventKind::Description(description), .. } => {
+                    NodeEvent {
+                        event: NodeEventKind::Description(description),
+                        ..
+                    } => {
                         let node: Node = description.into();
                         AVAILABLE_NODES.insert(node.id.clone(), node);
                     }
-                    NodeEvent { id, event: NodeEventKind::Ping } => {
+                    NodeEvent {
+                        id,
+                        event: NodeEventKind::Ping,
+                    } => {
                         let mut node = AVAILABLE_NODES.get_mut(&id).unwrap();
                         node.last_ping = chrono::Utc::now().timestamp_millis();
                     }
-                    NodeEvent { id, event: NodeEventKind::Disconnect } => {
+                    NodeEvent {
+                        id,
+                        event: NodeEventKind::Disconnect,
+                    } => {
                         AVAILABLE_NODES.remove(&id);
                     }
-                    NodeEvent { event: NodeEventKind::Timeout(user), .. } => {
+                    NodeEvent {
+                        event: NodeEventKind::Timeout(user),
+                        ..
+                    } => {
                         // clean up after user
                         let call = ActiveCall::get(&user.call_id).await.unwrap();
                         if call.is_none() {
                             continue;
                         }
                         let mut call = call.unwrap();
-                        call.leave_user(&user.id).await.expect("Failed to leave user");
+                        call.leave_user(&user.id)
+                            .await
+                            .expect("Failed to leave user");
                     }
                 }
-
             }
         }
     });
@@ -134,7 +150,7 @@ pub struct ActiveCall {
     pub name: Option<String>,
     pub members: Vec<String>,
     pub space_id: String,
-    pub channel_id: String, 
+    pub channel_id: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -154,17 +170,19 @@ impl FromRedisValue for ActiveCall {
             redis::Value::Data(ref bytes) => {
                 let data = deserialize(bytes);
                 match data {
-                    Ok (data) => Ok(data),
+                    Ok(data) => Ok(data),
                     Err(_) => {
-                        return Err(redis::RedisError::from((redis::ErrorKind::TypeError, "Deserialization error")));
-                    } 
+                        return Err(redis::RedisError::from((
+                            redis::ErrorKind::TypeError,
+                            "Deserialization error",
+                        )));
+                    }
                 }
             }
 
-
             _ => Err(redis::RedisError::from((
                 redis::ErrorKind::TypeError,
-                "Format error"
+                "Format error",
             ))),
         }
     }
@@ -176,17 +194,19 @@ impl FromRedisValue for NodeEvent {
             redis::Value::Data(ref bytes) => {
                 let data = deserialize(bytes);
                 match data {
-                    Ok (data) => Ok(data),
+                    Ok(data) => Ok(data),
                     Err(_) => {
-                        return Err(redis::RedisError::from((redis::ErrorKind::TypeError, "Deserialization error")));
-                    } 
+                        return Err(redis::RedisError::from((
+                            redis::ErrorKind::TypeError,
+                            "Deserialization error",
+                        )));
+                    }
                 }
             }
 
-
             _ => Err(redis::RedisError::from((
                 redis::ErrorKind::TypeError,
-                "Format error"
+                "Format error",
             ))),
         }
     }
@@ -195,9 +215,10 @@ impl FromRedisValue for NodeEvent {
 impl ToRedisArgs for ActiveCall {
     fn write_redis_args<W>(&self, out: &mut W)
     where
-        W: ?Sized + redis::RedisWrite {
-            let data = serialize(self).unwrap();
-            out.write_arg(data.as_slice());
+        W: ?Sized + redis::RedisWrite,
+    {
+        let data = serialize(self).unwrap();
+        out.write_arg(data.as_slice());
     }
 }
 
@@ -207,10 +228,12 @@ pub struct RtcAuthorization {
     user_id: String,
 }
 
-
-
 impl ActiveCall {
-    pub async fn create(space: &String, channel: &String, initiator: &String) -> Result<ActiveCall> {
+    pub async fn create(
+        space: &String,
+        channel: &String,
+        initiator: &String,
+    ) -> Result<ActiveCall> {
         let mut redis = get_connection().await;
         let call = Self::get_in_channel(space, channel).await?;
         if call.is_some() {
@@ -222,9 +245,14 @@ impl ActiveCall {
             members: vec![initiator.clone()],
             space_id: space.clone(),
             channel_id: channel.clone(),
-
         };
-        redis.set::<std::string::String, ActiveCall, ActiveCall>(format!("call:{}:{}", space, channel), call.clone()).await.unwrap();
+        redis
+            .set::<std::string::String, ActiveCall, ActiveCall>(
+                format!("call:{}:{}", space, channel),
+                call.clone(),
+            )
+            .await
+            .unwrap();
         let stored_call = Call {
             channel_id: channel.clone(),
             id: call.id.clone(),
@@ -239,7 +267,8 @@ impl ActiveCall {
             loop {
                 sleep(std::time::Duration::from_millis(30000)).await;
                 let mut redis = get_connection().await;
-                let active_call: std::result::Result<Option<ActiveCall>, _> = redis.get(format!("call:{}:{}", space, channel)).await;
+                let active_call: std::result::Result<Option<ActiveCall>, _> =
+                    redis.get(format!("call:{}:{}", space, channel)).await;
                 let active_call = match active_call {
                     Ok(call) => call,
                     Err(_) => {
@@ -250,7 +279,9 @@ impl ActiveCall {
                     break;
                 }
                 let active_call = active_call.unwrap();
-                Call::update(&active_call.id, active_call.members.clone()).await.unwrap(); // FIXME: unwrap
+                Call::update(&active_call.id, active_call.members.clone())
+                    .await
+                    .unwrap(); // FIXME: unwrap
             }
         });
         Ok(call)
@@ -274,11 +305,14 @@ impl ActiveCall {
 
     pub async fn update(&self) -> Result<()> {
         let mut redis = get_connection().await;
-        redis.set::<String, ActiveCall, ActiveCall>(format!("call:{}", self.id), self.clone()).await?;
+        redis
+            .set::<String, ActiveCall, ActiveCall>(format!("call:{}", self.id), self.clone())
+            .await?;
         Ok(())
     }
 
-    pub async fn join_user(&mut self, id: String) -> Result<()> { // add Result<()>?
+    pub async fn join_user(&mut self, id: String) -> Result<()> {
+        // add Result<()>?
         self.members.push(id);
         self.update().await?;
         Ok(())
@@ -289,7 +323,11 @@ impl ActiveCall {
             user_id: user_id.to_string(),
             call_id: self.id.clone(),
         };
-        let token = encode::<RtcAuthorization>(&Header::default(), &authorization, &EncodingKey::from_secret(JWT_SECRET.as_bytes()))?;
+        let token = encode::<RtcAuthorization>(
+            &Header::default(),
+            &authorization,
+            &EncodingKey::from_secret(JWT_SECRET.as_bytes()),
+        )?;
         Ok(token)
     }
 
@@ -307,10 +345,14 @@ impl ActiveCall {
     pub async fn end(&self) -> Result<()> {
         // remove call from redis, store into db
         let mut redis = get_connection().await;
-        redis.del::<std::string::String, ActiveCall>(format!("call:{}:{}", self.space_id, self.channel_id)).await?;
-        
+        redis
+            .del::<std::string::String, ActiveCall>(format!(
+                "call:{}:{}",
+                self.space_id, self.channel_id
+            ))
+            .await?;
+
         // disconnect any remaining users present
         Ok(())
     }
 }
-

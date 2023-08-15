@@ -1,5 +1,5 @@
 use once_cell::sync::OnceCell;
-use redis::{Client, aio::Connection};
+use redis::{aio::Connection, Client};
 
 use super::environment::REDIS_URI;
 
@@ -15,6 +15,9 @@ pub fn get_client() -> &'static Client {
 }
 
 pub async fn get_connection() -> Connection {
-    let connection = get_client().get_async_std_connection().await.expect("Failed to get connection");
+    let connection = get_client()
+        .get_async_std_connection()
+        .await
+        .expect("Failed to get connection");
     connection
 }

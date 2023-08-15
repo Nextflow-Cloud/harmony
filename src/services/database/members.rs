@@ -8,7 +8,11 @@ use crate::{
     services::permissions::{Permission, PermissionSet},
 };
 
-use super::{channels::{Channel, EntityType}, roles::Role, spaces::Space};
+use super::{
+    channels::{Channel, EntityType},
+    roles::Role,
+    spaces::Space,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Member {
@@ -48,7 +52,11 @@ impl Member {
     }
 
     // PermissionOverrideState (0, 1, 2)
-    pub async fn get_permission_in_channel(&self, channel: &Channel, permission: Permission) -> Result<bool> {
+    pub async fn get_permission_in_channel(
+        &self,
+        channel: &Channel,
+        permission: Permission,
+    ) -> Result<bool> {
         let space = Space::get(&self.space_id).await?;
         if space.owner == self.id {
             return Ok(true);
@@ -63,13 +71,21 @@ impl Member {
             Channel::InformationChannel { permissions, .. }
             | Channel::AnnouncementChannel { permissions, .. }
             | Channel::ChatChannel { permissions, .. } => {
-                
-                let mut role_overrides = permissions.iter().filter(|p| p.entity_type == EntityType::Role).filter(|p| self.roles.contains(&p.id)).collect::<Vec<_>>();
+                let mut role_overrides = permissions
+                    .iter()
+                    .filter(|p| p.entity_type == EntityType::Role)
+                    .filter(|p| self.roles.contains(&p.id))
+                    .collect::<Vec<_>>();
                 let mut map = HashMap::new();
                 for role in &role_overrides {
                     map.insert(role.id.clone(), Role::get(&role.id).await?);
                 }
-                role_overrides.sort_by(|a, b|  map.get(&a.id).unwrap().position.cmp(&map.get(&b.id).unwrap().position));
+                role_overrides.sort_by(|a, b| {
+                    map.get(&a.id)
+                        .unwrap()
+                        .position
+                        .cmp(&map.get(&b.id).unwrap().position)
+                });
                 role_overrides.reverse();
                 for role_override in role_overrides {
                     if role_override.allow.has_permission(permission) {
@@ -80,7 +96,9 @@ impl Member {
                     }
                 }
 
-                let member_override = permissions.iter().find(|p| p.id == self.id && p.entity_type == EntityType::Member);
+                let member_override = permissions
+                    .iter()
+                    .find(|p| p.id == self.id && p.entity_type == EntityType::Member);
                 if let Some(member_override) = member_override {
                     if member_override.allow.has_permission(permission) {
                         has_permission = true;
@@ -89,10 +107,10 @@ impl Member {
                         has_permission = false;
                     }
                 }
-                
+
                 Ok(has_permission)
             }
-            _ => Ok(false), // FIXME: Need to handle private channels 
+            _ => Ok(false), // FIXME: Need to handle private channels
         }
     }
 

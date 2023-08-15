@@ -8,8 +8,9 @@ use crate::{
     errors::{Error, Result},
     services::{
         database::{
+            members::Member,
             roles::{Color, Role},
-            spaces::Space, members::Member,
+            spaces::Space,
         },
         permissions::{can_modify_role, Permission},
         socket::RpcClient,

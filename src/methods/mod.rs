@@ -28,7 +28,11 @@ use self::{
         CreateSpaceMethod, CreateSpaceResponse, DeleteSpaceMethod, DeleteSpaceResponse,
         EditSpaceMethod, EditSpaceResponse, GetSpaceMethod, GetSpaceResponse, GetSpacesResponse,
         JoinSpaceResponse, LeaveSpaceResponse,
-    }, webrtc::{JoinCallResponse, JoinCallMethod, StartCallResponse, StartCallMethod, LeaveCallMethod, EndCallMethod, LeaveCallResponse, EndCallResponse},
+    },
+    webrtc::{
+        EndCallMethod, EndCallResponse, JoinCallMethod, JoinCallResponse, LeaveCallMethod,
+        LeaveCallResponse, StartCallMethod, StartCallResponse,
+    },
 };
 
 pub mod authentication;
@@ -54,7 +58,7 @@ pub enum Method {
     JoinCall(JoinCallMethod) = 11,
     LeaveCall(LeaveCallMethod) = 12,
     EndCall(EndCallMethod) = 13,
-    
+
     GetMessages(GetMessagesMethod) = 20,
     SendMessage(SendMessageMethod) = 22,
 
@@ -63,7 +67,6 @@ pub enum Method {
     // CreateChannel(CreateChannelMethod) = 32,
     // EditChannel(EditChannelMethod) = 33,
     // DeleteChannel(DeleteChannelMethod) = 34,
-
     GetSpace(GetSpaceMethod) = 40,
     CreateSpace(CreateSpaceMethod) = 41,
     EditSpace(EditSpaceMethod) = 42,
@@ -74,7 +77,6 @@ pub enum Method {
     // GetFriends(GetFriendsMethod) = 52,
     // GetFriendRequests(GetFriendRequestsMethod) = 53,
     // AcknowledgeFriendRequest(AcknowledgeFriendRequestMethod) = 55,
-
     CreateInvite(CreateInviteMethod) = 60,
     DeleteInvite(DeleteInviteMethod) = 61,
     GetInvite(GetInviteMethod) = 62,
@@ -84,7 +86,6 @@ pub enum Method {
     EditRole(EditRoleMethod) = 71,
     DeleteRole(DeleteRoleMethod) = 72,
     // GetRoles(GetRolesMethod) = 73,
-    
 }
 
 #[async_trait]
@@ -180,7 +181,7 @@ pub enum Response {
     JoinCall(JoinCallResponse) = 11,
     LeaveCall(LeaveCallResponse) = 12,
     EndCall(EndCallResponse) = 13,
-    
+
     GetMessages(GetMessagesResponse) = 20,
     SendMessage(SendMessageResponse) = 22,
 
@@ -189,7 +190,6 @@ pub enum Response {
     // CreateChannel(CreateChannelResponse) = 32,
     // EditChannel(EditChannelResponse) = 33,
     // DeleteChannel(DeleteChannelResponse) = 34,
-
     GetSpace(GetSpaceResponse) = 40,
     CreateSpace(CreateSpaceResponse) = 41,
     EditSpace(EditSpaceResponse) = 42,
@@ -227,7 +227,6 @@ pub enum Event {
     Hello(HelloEvent) = 0,
 
     // WebRTC: 10-19
-
     NewMessage(NewMessageEvent) = 21,
 }
 
