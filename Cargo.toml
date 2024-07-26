@@ -19,14 +19,14 @@ rand = "0.8.5"
 num_cpus = "1.16.0"
 ulid = "1.0.0"
 
-env_logger = "0.10.0"
+env_logger = "0.11.0"
 log = "0.4.20"
 
-async-tungstenite = "0.23.0"
+async-tungstenite = "0.27.0"
 
 mongodb = "2.6.0"
 jsonwebtoken = "8.3.0"
-redis = { version = "0.23.2", features = ["async-std-comp"] }
+redis = { version = "0.26.0", features = ["async-std-comp"] }
 
 serde = { version = "1.0.183", features = ["derive"] }
 rmp-serde = "1.1.2"
