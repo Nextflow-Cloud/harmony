@@ -170,12 +170,10 @@ impl FromRedisValue for ActiveCall {
                 let data = deserialize(bytes);
                 match data {
                     Ok(data) => Ok(data),
-                    Err(_) => {
-                        Err(redis::RedisError::from((
-                            redis::ErrorKind::TypeError,
-                            "Deserialization error",
-                        )))
-                    }
+                    Err(_) => Err(redis::RedisError::from((
+                        redis::ErrorKind::TypeError,
+                        "Deserialization error",
+                    ))),
                 }
             }
 
@@ -194,12 +192,10 @@ impl FromRedisValue for NodeEvent {
                 let data = deserialize(bytes);
                 match data {
                     Ok(data) => Ok(data),
-                    Err(_) => {
-                        Err(redis::RedisError::from((
-                            redis::ErrorKind::TypeError,
-                            "Deserialization error",
-                        )))
-                    }
+                    Err(_) => Err(redis::RedisError::from((
+                        redis::ErrorKind::TypeError,
+                        "Deserialization error",
+                    ))),
                 }
             }
 
@@ -228,11 +224,7 @@ pub struct RtcAuthorization {
 }
 
 impl ActiveCall {
-    pub async fn create(
-        space: &String,
-        channel: &String,
-        initiator: &str,
-    ) -> Result<ActiveCall> {
+    pub async fn create(space: &String, channel: &String, initiator: &str) -> Result<ActiveCall> {
         let mut redis = get_connection().await;
         let call = Self::get_in_channel(space, channel).await?;
         if call.is_some() {

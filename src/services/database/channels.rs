@@ -56,12 +56,9 @@ impl Channel {
         let database = super::get_database();
         let channel = database
             .collection::<Channel>("channels")
-            .find_one(
-                doc! {
-                    "id": id,
-                },
-                None,
-            )
+            .find_one(doc! {
+                "id": id,
+            })
             .await?;
         match channel {
             Some(channel) => Ok(channel),
@@ -94,7 +91,8 @@ impl Channel {
                     .build();
                 let messages: Vec<_> = database
                     .collection::<Message>("messages")
-                    .find(query, options)
+                    .find(query)
+                    .with_options(options)
                     .await?
                     .collect()
                     .await;

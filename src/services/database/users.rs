@@ -52,14 +52,11 @@ impl User {
     pub async fn get_spaces(&self) -> Result<Vec<Space>> {
         let spaces = super::get_database().collection::<Space>("spaces");
         let spaces = spaces
-            .find(
-                doc! {
-                    "members": {
-                        "$in": [&self.id],
-                    },
+            .find(doc! {
+                "members": {
+                    "$in": [&self.id],
                 },
-                None,
-            )
+            })
             .await?;
         let mut spaces: Vec<Space> = spaces
             .filter_map(|space| async { space.ok() })
@@ -72,15 +69,12 @@ impl User {
     pub async fn in_space(&self, space_id: &String) -> Result<bool> {
         let spaces = super::get_database().collection::<Space>("spaces");
         let space = spaces
-            .find_one(
-                doc! {
-                    "id": space_id,
-                    "members": {
-                        "$in": [&self.id],
-                    },
+            .find_one(doc! {
+                "id": space_id,
+                "members": {
+                    "$in": [&self.id],
                 },
-                None,
-            )
+            })
             .await?;
         Ok(space.is_some())
     }
@@ -113,12 +107,9 @@ impl User {
     pub async fn get(id: &String) -> Result<User> {
         let users = super::get_database().collection::<User>("users");
         let user = users
-            .find_one(
-                doc! {
-                    "id": id
-                },
-                None,
-            )
+            .find_one(doc! {
+                "id": id
+            })
             .await?;
         match user {
             Some(user) => Ok(user),
@@ -136,7 +127,7 @@ impl User {
             online: None,
             presence: None,
         };
-        users.insert_one(user.clone(), None).await?;
+        users.insert_one(user.clone()).await?;
         Ok(user)
     }
 
@@ -159,7 +150,7 @@ impl User {
                                 "$set": {
                                     "affinities.$[affinity].relationship": bson::to_bson(&Relationship::Friend)?
                                 }
-                            },
+                            }).with_options(
                             Some(mongodb::options::UpdateOptions::builder()
                                 .array_filters(vec![doc! {
                                     "affinity.id": &friend_id
@@ -176,7 +167,7 @@ impl User {
                                 "$set": {
                                     "affinities.$[affinity].relationship": bson::to_bson(&Relationship::Friend)?
                                 }
-                            },
+                            }).with_options(
                             Some(mongodb::options::UpdateOptions::builder()
                                 .array_filters(vec![doc! {
                                     "affinity.id": &self.id
@@ -201,7 +192,6 @@ impl User {
                             }
                         }
                     },
-                    None,
                 )
                 .await?;
             users
@@ -217,7 +207,6 @@ impl User {
                             }
                         }
                     },
-                    None,
                 )
                 .await?;
             Ok(())
@@ -237,7 +226,6 @@ impl User {
                         "uses": &self.id,
                     }
                 },
-                None,
             )
             .await?;
         let invite = match invite {
@@ -245,12 +233,9 @@ impl User {
             None => return Err(Error::NotFound),
         };
         let space = spaces
-            .find_one(
-                doc! {
-                    "id": invite.space_id,
-                },
-                None,
-            )
+            .find_one(doc! {
+                "id": invite.space_id,
+            })
             .await?;
         let space = match space {
             Some(space) => space,
@@ -262,24 +247,21 @@ impl User {
     pub async fn get_channels(&self) -> Result<Vec<Channel>> {
         let channels = super::get_database().collection::<Channel>("channels");
         let channels = channels
-            .find(
-                doc! {
-                    "$or": [
-                        {
-                            "initiator_id": &self.id
-                        },
-                        {
-                            "target_id": &self.id
-                        },
-                        {
-                            "members": {
-                                "$in": [&self.id],
-                            }
+            .find(doc! {
+                "$or": [
+                    {
+                        "initiator_id": &self.id
+                    },
+                    {
+                        "target_id": &self.id
+                    },
+                    {
+                        "members": {
+                            "$in": [&self.id],
                         }
-                    ]
-                },
-                None,
-            )
+                    }
+                ]
+            })
             .await?;
         let channels: Vec<Channel> = channels
             .filter_map(|channel| async { channel.ok() })
