@@ -11,7 +11,7 @@ use crate::errors::{Error, Result};
 use super::{
     database::calls::Call,
     environment::JWT_SECRET,
-    redis::get_connection,
+    redis::{get_connection, get_pubsub},
     socket::{deserialize, serialize},
 };
 
@@ -81,8 +81,7 @@ pub enum Region {
 pub fn spawn_check_available_nodes() {
     spawn(async move {
         loop {
-            let redis = get_connection().await;
-            let mut pubsub = redis.into_pubsub();
+            let mut pubsub = get_pubsub().await;
             pubsub.subscribe("nodes").await.unwrap();
             while let Some(msg) = pubsub.on_message().next().await {
                 let payload: NodeEvent = msg.get_payload().unwrap();
@@ -167,7 +166,7 @@ pub struct CallUser {
 impl FromRedisValue for ActiveCall {
     fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
         match *v {
-            redis::Value::Data(ref bytes) => {
+            redis::Value::BulkString(ref bytes) => {
                 let data = deserialize(bytes);
                 match data {
                     Ok(data) => Ok(data),
@@ -191,7 +190,7 @@ impl FromRedisValue for ActiveCall {
 impl FromRedisValue for NodeEvent {
     fn from_redis_value(v: &redis::Value) -> redis::RedisResult<Self> {
         match *v {
-            redis::Value::Data(ref bytes) => {
+            redis::Value::BulkString(ref bytes) => {
                 let data = deserialize(bytes);
                 match data {
                     Ok(data) => Ok(data),
