@@ -43,19 +43,16 @@ impl Role {
             space_id: space.id.clone(),
             scope_id: "global".to_string(), // FIXME: scope_id
         };
-        roles.insert_one(role.clone(), None).await?;
+        roles.insert_one(role.clone()).await?;
         Ok(role)
     }
 
     pub async fn delete(&self) -> Result<()> {
         let roles = super::get_database().collection::<Role>("roles");
         roles
-            .delete_one(
-                doc! {
-                    "id": &self.id,
-                },
-                None,
-            )
+            .delete_one(doc! {
+                "id": &self.id,
+            })
             .await?;
         Ok(())
     }
@@ -63,12 +60,9 @@ impl Role {
     pub async fn get(id: &String) -> Result<Role> {
         let roles = super::get_database().collection::<Role>("roles");
         let role = roles
-            .find_one(
-                doc! {
-                    "id": &id,
-                },
-                None,
-            )
+            .find_one(doc! {
+                "id": &id,
+            })
             .await?;
         match role {
             Some(role) => Ok(role),
@@ -90,7 +84,6 @@ impl Role {
                         "color": bson::to_bson(&color)?,
                     },
                 },
-                None,
             )
             .await?;
         match role {

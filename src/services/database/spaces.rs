@@ -41,55 +41,40 @@ impl Space {
             scope_id: scope_id.unwrap_or_else(|| "global".to_owned()),
             base_permissions: 0x16,
         };
-        spaces.insert_one(space.clone(), None).await?;
+        spaces.insert_one(space.clone()).await?;
         Ok(space)
     }
 
     pub async fn delete(&self) -> Result<()> {
         let spaces = super::get_database().collection::<Space>("spaces");
         spaces
-            .delete_one(
-                doc! {
-                    "id": &self.id,
-                },
-                None,
-            )
+            .delete_one(doc! {
+                "id": &self.id,
+            })
             .await?;
         let channels = super::get_database().collection::<Channel>("channels");
         channels
-            .delete_many(
-                doc! {
-                    "space_id": &self.id,
-                },
-                None,
-            )
+            .delete_many(doc! {
+                "space_id": &self.id,
+            })
             .await?;
         let invites = super::get_database().collection::<Invite>("invites");
         invites
-            .delete_many(
-                doc! {
-                    "space_id": &self.id,
-                },
-                None,
-            )
+            .delete_many(doc! {
+                "space_id": &self.id,
+            })
             .await?;
         let roles = super::get_database().collection::<Role>("roles");
         roles
-            .delete_many(
-                doc! {
-                    "space_id": &self.id,
-                },
-                None,
-            )
+            .delete_many(doc! {
+                "space_id": &self.id,
+            })
             .await?;
         let members = super::get_database().collection::<Member>("members");
         members
-            .delete_many(
-                doc! {
-                    "space_id": &self.id,
-                },
-                None,
-            )
+            .delete_many(doc! {
+                "space_id": &self.id,
+            })
             .await?;
         Ok(())
     }
@@ -97,12 +82,9 @@ impl Space {
     pub async fn get(id: &String) -> Result<Space> {
         let spaces = super::get_database().collection::<Space>("spaces");
         let space = spaces
-            .find_one(
-                doc! {
-                    "id": id,
-                },
-                None,
-            )
+            .find_one(doc! {
+                "id": id,
+            })
             .await?;
         if let Some(space) = space {
             Ok(space)
@@ -122,7 +104,6 @@ impl Space {
                         "members": id,
                     },
                 },
-                None,
             )
             .await?;
         Ok(())
@@ -139,7 +120,6 @@ impl Space {
                         "members": id,
                     },
                 },
-                None,
             )
             .await?;
         Ok(())
@@ -169,7 +149,6 @@ impl Space {
                 doc! {
                     "$set": update,
                 },
-                None,
             )
             .await?;
         match space {
@@ -189,7 +168,6 @@ impl Space {
                         "owner": user_id,
                     },
                 },
-                None,
             )
             .await?;
         Ok(())
@@ -199,12 +177,9 @@ impl Space {
         let database = super::get_database();
         let channels: Vec<Channel> = database
             .collection::<Channel>("channels")
-            .find(
-                doc! {
-                    "space_id": &self.id,
-                },
-                None,
-            )
+            .find(doc! {
+                "space_id": &self.id,
+            })
             .await?
             .try_collect()
             .await?;
@@ -215,13 +190,10 @@ impl Space {
         let database = super::get_database();
         let channel = database
             .collection::<Channel>("channels")
-            .find_one(
-                doc! {
-                    "id": id,
-                    "space_id": &self.id,
-                },
-                None,
-            )
+            .find_one(doc! {
+                "id": id,
+                "space_id": &self.id,
+            })
             .await?;
         match channel {
             Some(channel) => Ok(channel),
@@ -232,12 +204,9 @@ impl Space {
     pub async fn get_roles(&self) -> Result<Vec<Role>> {
         let roles = super::get_database().collection::<Role>("roles");
         let roles = roles
-            .find(
-                doc! {
-                    "space_id": &self.id,
-                },
-                None,
-            )
+            .find(doc! {
+                "space_id": &self.id,
+            })
             .await?;
         Ok(roles.try_collect().await?)
     }

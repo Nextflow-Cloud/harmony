@@ -30,7 +30,7 @@ impl Message {
         let database = super::get_database();
         database
             .collection::<Message>("messages")
-            .insert_one(message.clone(), None)
+            .insert_one(message.clone())
             .await?;
         Ok(message)
     }
@@ -45,7 +45,6 @@ impl Message {
                     "edited": true,
                     "editedAt": chrono::Utc::now().timestamp_millis(),
                 } },
-                None,
             )
             .await?;
         match message {
@@ -58,7 +57,7 @@ impl Message {
         let database = super::get_database();
         let message = database
             .collection::<Message>("messages")
-            .find_one_and_delete(doc! { "id": &self.id }, None)
+            .find_one_and_delete(doc! { "id": &self.id })
             .await?;
         match message {
             Some(message) => Ok(message),

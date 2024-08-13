@@ -48,7 +48,7 @@ impl Invite {
         let database = super::get_database();
         database
             .collection::<Invite>("invites")
-            .insert_one(invite.clone(), None)
+            .insert_one(invite.clone())
             .await?;
         Ok(invite)
     }
@@ -57,12 +57,9 @@ impl Invite {
         let database = super::get_database();
         let invite = database
             .collection::<Invite>("invites")
-            .find_one(
-                doc! {
-                    "id": code,
-                },
-                None,
-            )
+            .find_one(doc! {
+                "id": code,
+            })
             .await?;
         match invite {
             Some(invite) => Ok(invite),
@@ -73,12 +70,9 @@ impl Invite {
         let database = super::get_database();
         let result = database
             .collection::<Invite>("invites")
-            .delete_one(
-                doc! {
-                    "id": &self.id,
-                },
-                None,
-            )
+            .delete_one(doc! {
+                "id": &self.id,
+            })
             .await?
             .deleted_count
             > 0;
@@ -104,7 +98,7 @@ pub async fn get_invites(channel_id: String, space_id: Option<String>) -> Result
     }
     let invites: std::result::Result<Vec<Invite>, _> = database
         .collection::<Invite>("invites")
-        .find(query, None)
+        .find(query)
         .await?
         .collect::<Vec<_>>()
         .await

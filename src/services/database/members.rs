@@ -123,13 +123,10 @@ impl Member {
         let database = super::get_database();
         let member = database
             .collection::<Member>("members")
-            .find_one(
-                doc! {
-                    "id": id,
-                    "space_id": space_id,
-                },
-                None,
-            )
+            .find_one(doc! {
+                "id": id,
+                "space_id": space_id,
+            })
             .await?
             .ok_or(crate::errors::Error::NotFound)?;
         Ok(member)
@@ -139,13 +136,10 @@ impl Member {
         let database = super::get_database();
         database
             .collection::<Member>("members")
-            .delete_one(
-                doc! {
-                    "id": self.id.clone(),
-                    "space_id": space_id
-                },
-                None,
-            )
+            .delete_one(doc! {
+                "id": self.id.clone(),
+                "space_id": space_id
+            })
             .await?;
         Ok(())
     }

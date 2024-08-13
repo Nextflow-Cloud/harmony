@@ -129,12 +129,9 @@ pub async fn get_event(event_id: String) -> Result<Event> {
     let database = super::get_database();
     let event = database
         .collection::<Event>("events")
-        .find_one(
-            doc! {
-                "id": event_id,
-            },
-            None,
-        )
+        .find_one(doc! {
+            "id": event_id,
+        })
         .await?;
     match event {
         Some(event) => Ok(event),

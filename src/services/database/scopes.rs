@@ -20,17 +20,14 @@ impl Scope {
     pub async fn create(name: String) -> Result<()> {
         let scopes = super::get_database().collection::<Scope>("scopes");
         scopes
-            .insert_one(
-                Scope {
-                    id: Ulid::new().to_string(),
-                    name,
-                    disabled: false,
-                    nexuses: Vec::new(),
-                    channels: Vec::new(),
-                    users: Vec::new(),
-                },
-                None,
-            )
+            .insert_one(Scope {
+                id: Ulid::new().to_string(),
+                name,
+                disabled: false,
+                nexuses: Vec::new(),
+                channels: Vec::new(),
+                users: Vec::new(),
+            })
             .await?;
         Ok(())
     }
@@ -43,12 +40,9 @@ impl Scope {
     ) -> Result<bool> {
         let scopes = super::get_database().collection::<Scope>("scopes");
         let scope = scopes
-            .find_one(
-                doc! {
-                    "id": &self.id
-                },
-                None,
-            )
+            .find_one(doc! {
+                "id": &self.id
+            })
             .await?;
         match scope {
             Some(mut s) => {
@@ -80,12 +74,9 @@ impl Scope {
         } else {
             let scopes = super::get_database().collection::<Scope>("scopes");
             scopes
-                .delete_one(
-                    doc! {
-                        "id": &self.id
-                    },
-                    None,
-                )
+                .delete_one(doc! {
+                    "id": &self.id
+                })
                 .await?;
             Ok(true)
         }

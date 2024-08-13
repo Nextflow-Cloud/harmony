@@ -20,7 +20,7 @@ impl Call {
         let database = super::get_database();
         database
             .collection::<Call>("calls")
-            .insert_one(self.clone(), None)
+            .insert_one(self.clone())
             .await?;
         Ok(())
     }
@@ -39,7 +39,6 @@ impl Call {
                         "ended_at": chrono::Utc::now().timestamp_millis(),
                     },
                 },
-                None,
             )
             .await?;
         Ok(())
