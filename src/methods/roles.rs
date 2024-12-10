@@ -50,7 +50,6 @@ impl Respond for CreateRoleMethod {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-
 pub struct CreateRoleResponse {
     role: Role,
 }

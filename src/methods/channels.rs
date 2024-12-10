@@ -139,7 +139,6 @@ pub struct EditChannelMethod {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-
 pub struct DeleteChannelMethod {
     channel_id: String,
 }
