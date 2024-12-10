@@ -47,6 +47,7 @@ pub enum Error {
     // Call errors
     AlreadyExists,
     CallLimitReached,
+    NoVoiceNodesAvailable,
 }
 
 impl fmt::Display for Error {
@@ -77,6 +78,7 @@ impl fmt::Display for Error {
             Error::NotFriends => write!(f, "Not friends"),
             Error::AlreadyExists => write!(f, "Already exists"),
             Error::CallLimitReached => write!(f, "Call limit reached"),
+            Error::NoVoiceNodesAvailable => write!(f, "No voice nodes available"),
         }
     }
 }

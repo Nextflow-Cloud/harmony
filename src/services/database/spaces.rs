@@ -20,7 +20,24 @@ pub struct Space {
     pub owner: String,
     pub scope_id: String,
     pub base_permissions: i64,
+    // #[serde(rename = "type")]
+    // pub space_type: SpaceType,
 }
+
+// #[derive(Clone, Debug, Deserialize, Serialize)]
+// #[serde(rename_all = "camelCase")]
+// pub enum SpaceType {
+//     // Global,
+//     // Team,
+//     // Personal,
+//     // Organization,
+//     // Custom(String),
+//     Studio,
+//     Community,
+//     Personal,
+//     Organization,
+
+// }
 
 impl Space {
     pub async fn create(

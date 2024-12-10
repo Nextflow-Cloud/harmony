@@ -46,13 +46,31 @@ pub struct NodeEvent {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum NodeEventKind {
-    Description(NodeDescription),
-    Ping,
-    Disconnect,
-    Timeout(CallUser),
+    Description(NodeDescription), // on node connect
+    Ping, // on node ping
+    Disconnect, // on node disconnect
+    Query, // on server connect
+    UserConnect, // server -> node on user connect
+    UserCreate, // node -> server on new user
+    StartProduce, // server -> node on user start produce
+    StopProduce,// server -> node on user start produce
+    StartConsume, // server -> node on user start consume
+    StopConsume, // server -> node on user stop consume
+    UserDisconnect, // server -> node on user disconnect
+    UserDelete, // node -> server on user delete
+    TrackAvailable,
+    TrackUnavailable,
 }
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum ServerEventKind {}
+
+impl ToRedisArgs for NodeEvent {
+    fn write_redis_args<W>(&self, out: &mut W)
+    where
+        W: ?Sized + redis::RedisWrite,
+    {
+        let data = serialize(self).unwrap();
+        out.write_arg(data.as_slice());
+    }
+}
 
 impl From<NodeDescription> for Node {
     fn from(node: NodeDescription) -> Self {
@@ -80,46 +98,65 @@ pub enum Region {
 
 pub fn spawn_check_available_nodes() {
     spawn(async move {
-        loop {
-            let mut pubsub = get_pubsub().await;
-            pubsub.subscribe("nodes").await.unwrap();
-            while let Some(msg) = pubsub.on_message().next().await {
-                let payload: NodeEvent = msg.get_payload().unwrap();
-                match payload {
-                    NodeEvent {
-                        event: NodeEventKind::Description(description),
-                        ..
-                    } => {
-                        let node: Node = description.into();
-                        AVAILABLE_NODES.insert(node.id.clone(), node);
+        let mut pubsub = get_pubsub().await;
+        pubsub.subscribe("nodes").await.unwrap();
+        let mut connection = get_connection().await;
+        connection.publish::<&str, NodeEvent, NodeEvent>("nodes", NodeEvent {
+            event: NodeEventKind::Query,
+            id: "server".to_owned(),
+        }).await.expect("Failed to broadcast query");
+        while let Some(msg) = pubsub.on_message().next().await {
+            let payload: NodeEvent = msg.get_payload().unwrap();
+            match payload {
+                NodeEvent {
+                    event: NodeEventKind::Description(description),
+                    ..
+                } => {
+                    let node: Node = description.into();
+                    if AVAILABLE_NODES.contains_key(&node.id) {
+                        continue;
                     }
-                    NodeEvent {
-                        id,
-                        event: NodeEventKind::Ping,
-                    } => {
-                        let mut node = AVAILABLE_NODES.get_mut(&id).unwrap();
-                        node.last_ping = chrono::Utc::now().timestamp_millis();
-                    }
-                    NodeEvent {
-                        id,
-                        event: NodeEventKind::Disconnect,
-                    } => {
-                        AVAILABLE_NODES.remove(&id);
-                    }
-                    NodeEvent {
-                        event: NodeEventKind::Timeout(user),
-                        ..
-                    } => {
-                        // clean up after user
-                        let call = ActiveCall::get(&user.call_id).await.unwrap();
-                        if call.is_none() {
-                            continue;
-                        }
-                        let mut call = call.unwrap();
-                        call.leave_user(&user.id)
-                            .await
-                            .expect("Failed to leave user");
-                    }
+                    AVAILABLE_NODES.insert(node.id.clone(), node);
+                }
+                NodeEvent {
+                    id,
+                    event: NodeEventKind::Ping,
+                } => {
+                    let mut node = AVAILABLE_NODES.get_mut(&id).unwrap();
+                    node.last_ping = chrono::Utc::now().timestamp_millis();
+                }
+                NodeEvent {
+                    id,
+                    event: NodeEventKind::Disconnect,
+                } => {
+                    AVAILABLE_NODES.remove(&id);
+                }
+                // NodeEvent {
+                //     event: NodeEventKind::Timeout(user),
+                //     ..
+                // } => {
+                //     // clean up after user
+                //     let call = ActiveCall::get(&user.call_id).await.unwrap();
+                //     if call.is_none() {
+                //         continue;
+                //     }
+                //     let mut call = call.unwrap();
+                //     call.leave_user(&user.id)
+                //         .await
+                //         .expect("Failed to leave user");
+                // }
+                NodeEvent { event: NodeEventKind::Query, .. } => {}
+                NodeEvent {
+                    ..
+                } => {}
+            }
+            for node in AVAILABLE_NODES.iter() {
+                if node.last_ping + 10000 < chrono::Utc::now().timestamp_millis() {
+                    node.suppress();
+                    // Remove node
+                    let id = node.id.clone();
+                    drop(node);
+                    AVAILABLE_NODES.remove(&id);
                 }
             }
         }

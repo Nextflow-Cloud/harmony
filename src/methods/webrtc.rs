@@ -17,11 +17,12 @@ use super::{Respond, Response};
 pub struct JoinCallMethod {
     id: String,
     space_id: Option<String>,
+    sdp: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct JoinCallResponse {
-    token: String,
+    sdp: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -39,29 +40,30 @@ impl Respond for JoinCallMethod {
         id: String,
     ) -> Result<Response> {
         super::authentication::check_authenticated(clients, &id)?; // TODO: check rate limit, permissions req'd
-        if let Some(space_id) = &self.space_id {
-            let space = Space::get(space_id).await?;
-            if !space.members.contains(&id) {
-                return Err(Error::NotFound); // unauthorized
-            }
-            let member = Member::get(&id, &space.id).await?;
-            let channel = space.get_channel(&self.id).await?;
-            let permission = member
-                .get_permission_in_channel(&channel, Permission::JoinCalls)
-                .await?;
-            if !permission {
-                return Err(Error::MissingPermission {
-                    permission: Permission::JoinCalls,
-                });
-            }
-            let call = ActiveCall::get_in_channel(space_id, &self.id).await?;
-            if let Some(mut call) = call {
-                call.join_user(id.clone()).await?;
-                let token = call.get_token(&id).await?;
-                Ok(Response::JoinCall(JoinCallResponse { token }))
-            } else {
-                Err(Error::NotFound)
-            }
+        if let Some(_space_id) = &self.space_id {
+            // let space = Space::get(space_id).await?;
+            // if !space.members.contains(&id) {
+            //     return Err(Error::NotFound); // unauthorized
+            // }
+            // let member = Member::get(&id, &space.id).await?;
+            // let channel = space.get_channel(&self.id).await?;
+            // let permission = member
+            //     .get_permission_in_channel(&channel, Permission::JoinCalls)
+            //     .await?;
+            // if !permission {
+            //     return Err(Error::MissingPermission {
+            //         permission: Permission::JoinCalls,
+            //     });
+            // }
+            // let call = ActiveCall::get_in_channel(space_id, &self.id).await?;
+            // if let Some(mut call) = call {
+            //     call.join_user(id.clone()).await?;
+            //     let token = call.get_token(&id).await?;
+            //     Ok(Response::JoinCall(JoinCallResponse { token }))
+            // } else {
+            //     Err(Error::NotFound)
+            // }
+            Err(Error::NoVoiceNodesAvailable)
         } else {
             Err(Error::Unimplemented)
         }
