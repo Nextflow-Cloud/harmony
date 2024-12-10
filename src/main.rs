@@ -17,6 +17,7 @@ use crate::services::environment::LISTEN_ADDRESS;
 async fn main() {
     // TODO: environment, negotiate encryption
 
+    dotenvy::dotenv().ok();
     env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
 
     database::connect().await;
