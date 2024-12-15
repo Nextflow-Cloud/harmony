@@ -15,12 +15,13 @@ pub struct GetSpaceMethod {
     space_id: String,
 }
 
-async fn get_space(
+pub async fn get_space(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: GetSpaceMethod,
+    data: RpcValue<GetSpaceMethod>,
 ) -> impl RpcResponder {
     let user = check_authenticated(clients, &id)?;
+    let data = data.into_inner();
     let space = Space::get(&data.space_id).await?;
     let user_in_space = user.in_space(&data.space_id).await?;
     if !user_in_space {
@@ -44,12 +45,13 @@ pub struct CreateSpaceMethod {
     scope: Option<String>,
 }
 
-async fn create_space(
+pub async fn create_space(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: CreateSpaceMethod,
+    data: RpcValue<CreateSpaceMethod>,
 ) -> impl RpcResponder {
     let user = check_authenticated(clients, &id)?;
+    let data = data.into_inner();
     let trimmed = data.name.trim();
     if trimmed.len() > 32 {
         return Err(Error::NameTooLong);
@@ -79,12 +81,13 @@ pub struct JoinSpaceMethod {
     code: String,
 }
 
-async fn join_space(
+pub async fn join_space(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: JoinSpaceMethod,
+    data: RpcValue<JoinSpaceMethod>,
 ) -> impl RpcResponder {
     let user = check_authenticated(clients, &id)?;
+    let data = data.into_inner();
     let space = user.accept_invite(&data.code).await?;
     space.add_member(&id).await?;
     Ok::<_, Error>(RpcValue(JoinSpaceResponse { space }))
@@ -102,12 +105,13 @@ pub struct LeaveSpaceMethod {
     space_id: String,
 }
 
-async fn leave_space(
+pub async fn leave_space(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: LeaveSpaceMethod,
+    data: RpcValue<LeaveSpaceMethod>,
 ) -> impl RpcResponder {
     let user = check_authenticated(clients, &id)?;
+    let data = data.into_inner();
     let user_in_space = user.in_space(&data.space_id).await?;
     if !user_in_space {
         return Err(Error::NotFound);
@@ -129,7 +133,7 @@ pub struct LeaveSpaceResponse {
 #[serde(rename_all = "camelCase")]
 pub struct GetSpacesMethod {}
 
-async fn get_spaces(
+pub async fn get_spaces(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
     _: GetSpacesMethod,
@@ -156,12 +160,13 @@ pub struct EditSpaceMethod {
     base_permissions: Option<i32>,
 }
 // TODO: logger
-async fn edit_space(
+pub async fn edit_space(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: EditSpaceMethod,
+    data: RpcValue<EditSpaceMethod>,
 ) -> impl RpcResponder {
     check_authenticated(clients, &id)?;
+    let data = data.into_inner();
     let space = Space::get(&data.space_id).await?;
     let space = space
         .update(
@@ -185,12 +190,13 @@ pub struct DeleteSpaceMethod {
     space_id: String,
 }
 
-async fn delete_space(
+pub async fn delete_space(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: DeleteSpaceMethod,
+    data: RpcValue<DeleteSpaceMethod>,
 ) -> impl RpcResponder {
     check_authenticated(clients, &id)?;
+    let data = data.into_inner();
     let space = Space::get(&data.space_id).await?;
     space.delete().await?;
     Ok::<_, Error>(RpcValue(DeleteSpaceResponse {

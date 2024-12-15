@@ -30,12 +30,13 @@ pub struct RtcAuthorization {
     space_id: Option<String>,
 }
 
-async fn join_call(
+pub async fn join_call(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: JoinCallMethod,
+    data: RpcValue<JoinCallMethod>,
 ) -> impl RpcResponder {
     check_authenticated(clients, &id)?; // TODO: check rate limit, permissions req'd
+    let data = data.into_inner();
     if let Some(_space_id) = &data.space_id {
         // let space = Space::get(space_id).await?;
         // if !space.members.contains(&id) {
@@ -71,12 +72,13 @@ pub struct StartCallMethod {
     space_id: Option<String>,
 }
 
-async fn start_call(
+pub async fn start_call(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: StartCallMethod,
+    data: RpcValue<StartCallMethod>,
 ) -> impl RpcResponder {
     check_authenticated(clients, &id)?;
+    let data = data.into_inner();
     if let Some(space_id) = &data.space_id {
         let space = Space::get(space_id).await?;
         if !space.members.contains(&id) {
@@ -111,12 +113,13 @@ pub struct EndCallMethod {
     space_id: Option<String>,
 }
 
-async fn end_call(
+pub async fn end_call(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: EndCallMethod,
+    data: RpcValue<EndCallMethod>,
 ) -> impl RpcResponder {
     check_authenticated(clients, &id)?;
+    let data = data.into_inner();
     if let Some(space_id) = &data.space_id {
         let space = Space::get(space_id).await?;
         if !space.members.contains(&id) {
@@ -153,12 +156,13 @@ pub struct LeaveCallMethod {
     space_id: Option<String>,
 }
 
-async fn leave_call(
+pub async fn leave_call(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: LeaveCallMethod,
+    data: RpcValue<LeaveCallMethod>,
 ) -> impl RpcResponder {
     check_authenticated(clients, &id)?;
+    let data = data.into_inner();
     if let Some(space_id) = &data.space_id {
         let call = ActiveCall::get_in_channel(space_id, &data.id).await?;
         if let Some(mut call) = call {

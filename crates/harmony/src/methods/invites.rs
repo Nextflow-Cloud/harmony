@@ -27,11 +27,12 @@ pub struct CreateInviteMethod {
     scope_id: Option<String>,
 }
 
-async fn create_invite(
+pub async fn create_invite(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: CreateInviteMethod,
+    data: RpcValue<CreateInviteMethod>,
 ) -> impl RpcResponder {
+    let data = data.into_inner();
     let user = check_authenticated(clients, &id)?;
     let invite = Invite::create(
         data.channel_id.clone(),
@@ -82,11 +83,12 @@ pub struct DeleteInviteMethod {
     space_id: String,
 }
 
-async fn delete_invite(
+pub async fn delete_invite(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: DeleteInviteMethod,
+    data: RpcValue<DeleteInviteMethod>,
 ) -> impl RpcResponder {
+    let data = data.into_inner();
     let user = check_authenticated(clients, &id)?;
     let member = Member::get(&user.id, &data.space_id).await?;
     let permissions = member.get_permissions().await?;
@@ -111,11 +113,12 @@ pub struct GetInviteMethod {
     code: String,
 }
 
-async fn get_invite(
+pub async fn get_invite(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: GetInviteMethod,
+    data: RpcValue<GetInviteMethod>,
 ) -> impl RpcResponder {
+    let data = data.into_inner();
     let user = check_authenticated(clients, &id)?;
     let invite = Invite::get(&data.code).await?;
     if let Some(space_id) = invite.space_id {
@@ -198,11 +201,12 @@ pub struct GetInvitesMethod {
     scope_id: Option<String>,
 }
 
-async fn get_invites(
+pub async fn get_invites(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: GetInvitesMethod,
+    data: RpcValue<GetInvitesMethod>,
 ) -> impl RpcResponder {
+    let data = data.into_inner();
     let user = check_authenticated(clients, &id)?;
     if let Some(space_id) = &data.space_id {
         let member = Member::get(&user.id, space_id).await?;

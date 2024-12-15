@@ -165,7 +165,7 @@ impl RpcServer {
         }
     }
 
-    pub fn register<F, G>(&self, name: String, method: F) -> () where 
+    pub fn register<F, G>(self, name: &str, method: F) -> Self where 
         F: Handler<G> + Sync + Send,
         G: RpcRequest + Send,
         F::Output: RpcResponder + 'static,
@@ -184,7 +184,8 @@ impl RpcServer {
             });
             n
         });
-        self.methods.insert(name, x);
+        self.methods.insert(name.to_string(), x);
+        self
     }
 
     pub async fn start(&self, address: String) {    

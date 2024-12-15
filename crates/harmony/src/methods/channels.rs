@@ -20,8 +20,9 @@ pub struct GetChannelMethod {
 pub async fn get_channel(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: GetChannelMethod,
+    data: RpcValue<GetChannelMethod>,
 ) -> impl RpcResponder {
+    let data = data.into_inner();
     let user = check_authenticated(clients, &id)?;
     let channel = Channel::get(&data.id).await?;
     match channel {
@@ -67,10 +68,10 @@ pub struct GetChannelsMethod {
     scope_id: Option<String>,
 }
 
-async fn get_channels(
+pub async fn get_channels(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    _: GetChannelsMethod,
+    _: RpcValue<GetChannelsMethod>,
 ) -> impl RpcResponder {
     let user = check_authenticated(clients, &id)?;
     let channels = user.get_channels().await?;

@@ -34,6 +34,25 @@ async fn main() {
 
     let listen_address = LISTEN_ADDRESS.to_owned();
     info!("Starting server at {listen_address}");
-    let server = RpcServer::new(Box::new(|token| Box::pin(authenticate(token))));
-    server.start(listen_address).await;
+    RpcServer::new(Box::new(|token| Box::pin(authenticate(token))))
+        .register("GET_CHANNEL", methods::channels::get_channel)
+        .register("GET_CHANNELS", methods::channels::get_channels)
+        .register("CREATE_INVITE", methods::invites::create_invite)
+        .register("DELETE_INVITE", methods::invites::delete_invite)
+        .register("GET_INVITE", methods::invites::get_invite)
+        .register("GET_INVITES", methods::invites::get_invites)
+        .register("GET_MESSAGES", methods::messages::get_messages)
+        .register("SEND_MESSAGE", methods::messages::send_message)
+        .register("CREATE_ROLE", methods::roles::create_role)
+        .register("EDIT_ROLE", methods::roles::edit_role)
+        .register("DELETE_ROLE", methods::roles::delete_role)
+        .register("GET_SPACE", methods::spaces::get_space)
+        .register("CREATE_SPACE", methods::spaces::create_space)
+        .register("EDIT_SPACE", methods::spaces::edit_space)
+        .register("DELETE_SPACE", methods::spaces::delete_space)
+        .register("JOIN_CALL", methods::webrtc::join_call)
+        .register("LEAVE_CALL", methods::webrtc::leave_call)
+        .register("START_CALL", methods::webrtc::start_call)
+        .register("END_CALL", methods::webrtc::end_call)
+        .start(listen_address).await;
 }

@@ -22,12 +22,13 @@ pub struct GetMessagesMethod {
     after: Option<String>,
 }
 
-async fn get_messages(
+pub async fn get_messages(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: GetMessagesMethod,
+    data: RpcValue<GetMessagesMethod>,
 ) -> impl RpcResponder {
     check_authenticated(clients, &id)?;
+    let data = data.into_inner();
     let channel = Channel::get(&data.channel_id).await?;
     let messages = channel
         .get_messages(
@@ -53,12 +54,13 @@ pub struct SendMessageMethod {
     content: String,
 }
 
-async fn send_message(
+pub async fn send_message(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: SendMessageMethod,
+    data: RpcValue<SendMessageMethod>,
 ) -> impl RpcResponder {
     let user = check_authenticated(clients.clone(), &id)?;
+    let data = data.into_inner();
     let trimmed = data.content.trim();
     if trimmed.len() > 4096 {
         return Err(Error::MessageTooLong);

@@ -24,12 +24,13 @@ pub struct CreateRoleMethod {
     space_id: String,
 }
 
-async fn create_role(
+pub async fn create_role(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: CreateRoleMethod,
+    data: RpcValue<CreateRoleMethod>,
 ) -> impl RpcResponder {
     check_authenticated(clients, &id)?;
+    let data = data.into_inner();
     let space = Space::get(&data.space_id).await?;
     let role = Role::create(
         &space,
@@ -58,12 +59,13 @@ pub struct EditRoleMethod {
     scope_id: Option<String>,
 }
 
-async fn edit_role(
+pub async fn edit_role(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: EditRoleMethod,
+    data: RpcValue<EditRoleMethod>,
 ) -> impl RpcResponder {
     check_authenticated(clients, &id)?;
+    let data = data.into_inner();
     let role = Role::get(&data.id).await?;
     if role.space_id != data.space_id {
         return Err(Error::NotFound);
@@ -98,12 +100,13 @@ pub struct DeleteRoleMethod {
     id: String,
 }
 
-async fn delete_role(
+pub async fn delete_role(
     clients: Arc<DashMap<String, RpcClient>>,
     id: String,
-    data: DeleteRoleMethod,
+    data: RpcValue<DeleteRoleMethod>,
 ) -> impl RpcResponder {
     check_authenticated(clients, &id)?;
+    let data = data.into_inner();
     let role = Role::get(&data.id).await?;
     role.delete().await?;
     Ok::<_, Error>(RpcValue(DeleteRoleResponse {
